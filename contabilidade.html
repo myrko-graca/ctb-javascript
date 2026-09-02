@@ -1,0 +1,3926 @@
+<html lang="pt-br" class="notranslate" translate="no">
+	<meta charset="UTF-8">
+	<style>
+		select[disabled] {
+			border-color: black;
+		}
+		[disabled] {
+			background-color: white;
+			color: black;
+		}
+		.file-group {
+			display: inline-flex;
+			overflow: hidden;
+			border-radius: 12px;
+			box-shadow: 0 2px 6px rgba(0,0,0,.15);
+		}
+		label:has(input[type="checkbox"]):focus-within, label:has(input[type="radio"]):focus-within {
+			border-color: #007bff;
+			box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+			outline: none;
+		}
+		.file-group button {
+			border-radius: 0;
+			padding: 4px 12px;
+		}
+		.btn {
+			min-height: 30px;
+			min-width: 30px;
+			border: none;
+			color: white;
+			cursor: pointer;
+			font-size: 12px;
+			transition: filter .2s;
+			border-radius: 20px;
+		}
+		.btn:hover {
+			filter: brightness(1.1);
+		}
+		.btn-plus {
+			background: #81bd60;
+		}
+		.btn-view {
+			background: #7892c2;
+		}
+		.btn-clear {
+			background: #bd6060;
+		}
+		fieldset:focus,div:focus {
+			border-color: #007bff;
+			box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+			outline: none; /* Remove a borda azul padrão do navegador se quiser customizar */
+		}
+		.tela-cheia {
+			position: absolute !important;
+			top: 0 !important;
+			left: 0 !important;
+			right: 0 !important;
+			width: 100% !important;
+			height: auto !important; /* Mantém a proporção vertical baseada no conteúdo */
+			margin: 0 !important;
+			box-sizing: border-box !important;
+			padding: 30px !important;
+			background-color: #ffffff !important;
+			box-shadow: 0 1000px 0 1000px #ffffff !important;
+			z-index: 9999 !important;
+		}
+	</style>
+	<script>
+		class CustomSelect {
+			constructor(elemento, obj) {
+				if (!elemento) {
+					elemento = document.createElement("div");
+					elemento.style.height = "30px";
+					document.body.appendChild(elemento);
+				}
+				this.elemento = elemento;
+				this.options = obj?.opcoes;
+				this.placeholder = obj?.placeholder;
+				this.selectedValue = null;
+				this.items = [];
+				this.focusedItemIndex = -1; // Controle do foco por teclado
+				
+				this.init();
+			}
+			init() {
+				this.createDOM();
+				this.setupEvents();
+			}
+			createDOM() {
+				this.elemento.textContent = '';
+				this.wrapper = document.createElement('div');
+				this.wrapper.style.position = "relative";
+				this.wrapper.style.width = "100%";
+				this.wrapper.style.height = "100%";
+				this.wrapper.style.fontFamily = "arial";
+				this.wrapper.style.fontSize = "medium";
+				
+				this.btn = document.createElement('div');
+				this.btn.tabIndex = 0; 
+				this.btn.style.width = "100%";
+				this.btn.style.height = "100%";
+				this.btn.style.border = "1px solid rgb(118, 118, 118)";
+				this.btn.style.background = '#fff';
+				this.btn.style.textAlign = 'left';
+				this.btn.style.cursor = 'pointer';
+				this.btn.style.display = 'flex';
+				this.btn.style.justifyContent = 'space-between';
+				this.btn.style.alignItems = 'center';
+				this.btn.style.fontSize = 'medium';
+				this.btn.style.boxSizing = 'border-box'; 
+				this.btn.style.padding = "4px";
+
+				this.label = document.createElement('span');
+				this.label.style.paddingLeft = "2px";
+				this.label.style.flexGrow = "1"; 
+				this.label.style.pointerEvents = "none"; 
+				this.label.style.whiteSpace = "nowrap";
+				this.label.style.overflow = "hidden";
+				this.label.style.textOverflow = "ellipsis"; 
+				this.label.style.minWidth = "0"; 				
+				this.label.textContent = this.placeholder;
+				this.btn.appendChild(this.label);
+
+				const actionsContainer = document.createElement('div');
+				actionsContainer.style.display = 'flex';
+				actionsContainer.style.alignItems = 'center';
+				actionsContainer.style.gap = '8px';
+				actionsContainer.style.flexShrink = '0'; // Impede o botão X e a seta de esmagarem o texto
+
+				this.clearBtn = document.createElement('span');
+				this.clearBtn.textContent = '\u2715'; 
+				this.clearBtn.style.cursor = 'pointer';
+				this.clearBtn.style.color = '#999';
+				this.clearBtn.style.fontSize = '14px';
+				this.clearBtn.style.display = 'none'; 
+				this.clearBtn.style.padding = '4px';
+
+				this.clearBtn.addEventListener('mouseenter', () => this.clearBtn.style.color = '#333');
+				this.clearBtn.addEventListener('mouseleave', () => this.clearBtn.style.color = '#999');
+				actionsContainer.appendChild(this.clearBtn);
+
+				const arrow = document.createElement('span');
+				arrow.textContent = '\u25BC';
+				actionsContainer.appendChild(arrow);
+
+				this.btn.appendChild(actionsContainer);
+				this.wrapper.appendChild(this.btn);
+
+				this.dropdown = document.createElement('div');
+				this.dropdown.style.position = 'absolute';
+				this.dropdown.style.left = '0';
+				this.dropdown.style.width = '100%';
+				this.dropdown.style.border = '1px solid #ccc';
+				this.dropdown.style.background = '#fff';
+				this.dropdown.style.zIndex = '1000';
+				this.dropdown.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+				this.dropdown.style.borderRadius = '4px';
+				this.dropdown.style.boxSizing = 'border-box';
+				this.dropdown.style.padding = '10px';
+				this.dropdown.style.display = 'none';
+
+				this.input = document.createElement('input');
+				this.input.type = 'text';
+				this.input.placeholder = 'Digite para filtrar...';
+				this.input.style.fontSize = "medium";
+				this.input.style.width = '100%';
+				this.input.style.padding = '10px';
+				this.input.style.boxSizing = 'border-box';
+				this.input.style.border = '1px solid #ddd';
+				this.input.style.borderRadius = '4px';
+				this.dropdown.appendChild(this.input);
+
+				this.list = document.createElement('ul');
+				this.list.style.listStyle = 'none';
+				this.list.style.padding = '0';
+				this.list.style.margin = '0';
+				this.list.style.overflowY = 'auto';
+				this.list.style.webkitOverflowScrolling = 'touch';
+				this.list.style.maxHeight = "400px";
+				this.renderOptions();
+
+				this.dropdown.appendChild(this.list);
+				this.wrapper.appendChild(this.dropdown);
+				this.elemento.appendChild(this.wrapper);
+
+				this.wrapper.addEventListener('focusout', (e) => {
+					if (!this.wrapper.contains(e.relatedTarget)) {
+						this.closeDropdown();
+					}
+				});
+			}
+			renderOptions() {
+				if (!this.options) {
+					return;
+				}
+				this.list.textContent = '';
+				this.items = [];
+				this.focusedItemIndex = -1; // Reseta índice do teclado
+
+				this.options.forEach(opt => {
+					const item = document.createElement('li');
+					if (opt.value !== undefined) {
+						item.setAttribute('data-value', opt.value);
+					} else {
+						item.setAttribute('data-value', opt.text);
+					}
+					item.textContent = opt.text;
+					item.style.padding = '6px 4px';
+					item.style.cursor = 'pointer';
+					item.style.borderRadius = '4px';
+					item.style.transition = 'background 0.2s, color 0.2s';
+					
+					item.addEventListener('mouseenter', () => {
+						this.clearItemFocus(); // Remove destaque das setas se mover o mouse
+						item.style.backgroundColor = '#f0f0f0';
+					});
+					item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
+					item.addEventListener('touchstart', () => item.style.backgroundColor = '#f0f0f0');
+					item.addEventListener('touchend', () => item.style.backgroundColor = 'transparent');
+					item.addEventListener('mousedown', (e) => {
+						e.stopPropagation();
+						e.preventDefault(); 
+						this.selectItem(item);
+					});
+					
+					this.list.appendChild(item);
+					this.items.push(item);
+				});
+			}
+			clearItemFocus() {
+				this.items.forEach(item => {
+					item.style.backgroundColor = 'transparent';
+					item.style.color = '#000';
+				});
+			}
+			updateItemFocus() {
+				this.clearItemFocus();
+				const visibleItems = this.items.filter(item => item.style.display !== 'none');
+				if (visibleItems.length === 0) return;
+
+				if (this.focusedItemIndex >= visibleItems.length) this.focusedItemIndex = 0;
+				if (this.focusedItemIndex < 0) this.focusedItemIndex = visibleItems.length - 1;
+
+				const activeItem = visibleItems[this.focusedItemIndex];
+				activeItem.style.backgroundColor = '#007bff'; // Destaque azul clássico
+				activeItem.style.color = '#fff';
+				// Controla a barra de rolagem da lista de forma automática
+				const listRect = this.list.getBoundingClientRect();
+				const itemRect = activeItem.getBoundingClientRect();
+
+				if (itemRect.bottom > listRect.bottom) {
+					this.list.scrollTop += (itemRect.bottom - listRect.bottom);
+				} else if (itemRect.top < listRect.top) {
+					this.list.scrollTop -= (listRect.top - itemRect.top);
+				}
+			}
+			setOptions(newOptions = []) {
+				const valorAnterior = this.selectedValue;
+				this.options = newOptions;
+				this.renderOptions();
+				const aindaExiste = this.options?.some(opt => {
+					const optValue = opt.value !== undefined ? opt.value : opt.text;
+					return String(optValue) === String(valorAnterior);
+				});
+				if (aindaExiste && valorAnterior !== null) {
+					this.setValue(valorAnterior);
+				} else {
+					this.clearSelection();
+				}
+			}
+			clearSelection() {
+				this.selectedValue = null;
+				this.label.textContent = this.placeholder;
+				this.clearBtn.style.display = 'none'; 
+
+				const event = new CustomEvent('change', { 
+					detail: { value: null, text: '' } 
+				});
+				this.elemento.dispatchEvent(event);
+			}
+			setupEvents() {
+				this.btn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					e.preventDefault(); 
+					const isClosed = this.dropdown.style.display === 'none';
+					if (isClosed) {
+						window.dispatchEvent(new CustomEvent('cs-close-all'));
+						this.adjustDropdownPosition();
+						this.dropdown.style.display = 'block';
+						this.input.value = '';
+						this.filterOptions('');
+						setTimeout(() => this.input.focus(), 50); 
+					} else {
+						this.closeDropdown();
+					}
+				});
+				window.addEventListener('cs-close-all', () => {
+					this.closeDropdown();
+				});
+				this.clearBtn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					this.clearSelection();
+				});
+				this.input.addEventListener('input', (e) => {
+					this.filterOptions(e.target.value);
+				});
+				document.addEventListener('mousedown', (e) => {
+					if (!this.wrapper.contains(e.target)) {
+						this.closeDropdown();
+					}
+				});
+				this.btn.addEventListener('keydown', (e) => {
+					const isClosed = this.dropdown.style.display === 'none';
+					if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+						e.preventDefault(); 
+						if (isClosed) {
+							window.dispatchEvent(new CustomEvent('cs-close-all'));
+							this.adjustDropdownPosition();
+							this.dropdown.style.display = 'block';
+							this.input.value = '';
+							this.filterOptions('');
+							setTimeout(() => this.input.focus(), 50); 
+						}
+					}
+				});
+				this.input.addEventListener('keydown', (e) => {
+					const isClosed = this.dropdown.style.display === 'none';
+					if (isClosed) return;
+
+					const visibleItems = this.items.filter(item => item.style.display !== 'none');
+
+					if (e.key === 'ArrowDown') {
+						e.preventDefault();
+						this.focusedItemIndex++;
+						this.updateItemFocus();
+					} 
+					else if (e.key === 'ArrowUp') {
+						e.preventDefault();
+						this.focusedItemIndex--;
+						this.updateItemFocus();
+					} 
+					else if (e.key === 'Enter') {
+						e.preventDefault();
+						if (this.focusedItemIndex >= 0 && this.focusedItemIndex < visibleItems.length) {
+							this.selectItem(visibleItems[this.focusedItemIndex]);
+						}
+					} 
+					else if (e.key === 'Escape') {
+						this.closeDropdown();
+						this.btn.focus();
+					}
+				});
+				this.btn.addEventListener('keydown', (e) => {
+					const isClosed = this.dropdown.style.display === 'none';
+					if (e.key === 'Delete' || e.key === 'Backspace') {
+						if (isClosed) {
+							e.preventDefault();
+							this.clearSelection(); // Chama o seu método de limpar já existente
+						}
+					}
+					else if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+						e.preventDefault(); 
+						if (isClosed) {
+							window.dispatchEvent(new CustomEvent('cs-close-all'));
+							this.adjustDropdownPosition();
+							this.dropdown.style.display = 'block';
+							this.input.value = '';
+							this.filterOptions('');
+							setTimeout(() => this.input.focus(), 50); 
+						}
+					}
+				});
+
+			}
+			adjustDropdownPosition() {
+				const rect = this.btn.getBoundingClientRect();
+				const espacoAbaixo = window.innerHeight - rect.bottom;
+				const alturaEstimadaDropdown = 240;
+
+				this.dropdown.style.top = '';
+				this.dropdown.style.bottom = '';
+				this.dropdown.style.marginTop = '';
+				this.dropdown.style.marginBottom = '';
+
+				if (espacoAbaixo < alturaEstimadaDropdown && rect.top > espacoAbaixo) {
+					this.dropdown.style.bottom = '100%';
+					this.dropdown.style.marginBottom = '4px';
+				} else {
+					this.dropdown.style.top = '100%';
+					this.dropdown.style.marginTop = '4px';
+				}
+			}
+			filterOptions(searchTerm) {
+				const term = searchTerm.toLowerCase();
+				this.items.forEach(item => {
+					const text = item.textContent.toLowerCase();
+					if (text.includes(term)) {
+						item.style.display = 'block';
+					} else {
+						item.style.display = 'none';
+					}
+				});
+				this.focusedItemIndex = -1; // Reseta seleção do teclado ao filtrar
+				this.clearItemFocus();
+			}
+			selectItem(item) {
+				this.selectedValue = item.getAttribute('data-value');
+				this.label.textContent = item.textContent;
+				this.clearBtn.style.display = 'block';
+				this.closeDropdown();
+				const event = new CustomEvent('change', {
+					detail: { value: this.selectedValue, text: item.textContent }
+				});
+				this.elemento.dispatchEvent(event);
+				}
+			closeDropdown() {
+				this.dropdown.style.display = 'none';
+				this.focusedItemIndex = -1; // Limpa foco ao fechar
+			}
+			getValue() {
+				return this.selectedValue;
+			}
+			setValue(value) {
+				if (value === null || value === undefined || value === '') {
+					this.clearSelection();
+					return;
+				}
+				const opcaoEncontrada = this.options?.find(opt => {
+					const optValue = opt.value !== undefined ? opt.value : opt.text;
+					return String(optValue) === String(value);
+				});
+				if (opcaoEncontrada) {
+					this.selectedValue = opcaoEncontrada.value !== undefined ? opcaoEncontrada.value : opcaoEncontrada.text;
+					this.label.textContent = opcaoEncontrada.text;
+					this.clearBtn.style.display = 'block'; // Mostra o botão X de limpar
+					const event = new CustomEvent('change', { 
+						detail: { value: this.selectedValue, text: opcaoEncontrada.text } 
+					});
+					this.elemento.dispatchEvent(event);
+				} else {
+					console.warn(`A opção com o valor "${value}" não foi encontrada no CustomSelect.`);
+				}
+			}
+		}
+		class Modal {
+			constructor() {
+				if (!document.querySelector("style[id='estilo_modal']")) {
+					const estilo = document.createElement('style');
+					estilo.id = "estilo_modal";
+					estilo.innerHTML = `
+						dialog {
+						  border: none;
+						  border-radius: 8px;
+						  padding: 20px;
+						  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+						}
+						dialog::backdrop {
+						  background-color: rgba(0, 0, 0, 0.5);
+						}
+					`;
+					document.head.appendChild(estilo);
+					const dialog = document.createElement('div');
+					dialog.innerHTML = `
+						<dialog id="meuModal" style="max-width: 70%;">
+							<h3 id="modalTitulo" style="margin-top: 0;"></h3>
+							<hr>
+							<p id="modalConteudo"></p>
+							<button onclick="document.getElementById('meuModal').close()">Fechar</button>
+						</dialog>
+					`;
+					document.body.appendChild(dialog);
+				}
+			}
+			mostrar(titulo, conteudo) {
+				document.getElementById('modalTitulo').innerText = titulo;
+				document.getElementById('modalConteudo').innerText = conteudo;
+				document.getElementById('meuModal').showModal();
+			}	
+		}
+		class ControleAba {
+			constructor(elemento, abaAtiva) {
+				if (elemento) {
+					this.elemento = elemento;
+				} else {
+					this.elemento = document.body;
+				}
+				this.aoAlterar = null;
+				this.posicaoY = new Object();
+				//this.util = new Util();
+				this.abaAtiva = null;
+				if (abaAtiva) {
+					this.alternar(abaAtiva);
+				}
+				if (!document.querySelector("style[id='estilo_aba']")) {
+					const estilo = document.createElement('style');
+					estilo.id = "estilo_aba";
+					estilo.innerHTML = `
+						.hidden {
+							display: none;
+							opacity: 0;
+						}
+						nav {
+						  display: flex;
+						  flex-wrap: wrap;
+						  border-bottom: 2px solid #e0e0e0;
+						  gap: 4px;
+						  padding: 8px 8px 0 8px;
+						}
+						nav button {
+						  background: none;
+						  border: 1px solid transparent;
+						  border-bottom: none;
+						  padding: 10px 20px;
+						  font-size: 14px;
+						  font-weight: 500;
+						  cursor: pointer;
+						  color: #5f6368;
+						  border-top-left-radius: 6px;
+						  border-top-right-radius: 6px;
+						  transition: all 0.2s ease;
+						  margin-bottom: -2px;
+						}
+						nav button:hover {
+						  background-color: #f1f3f4;
+						  color: #1a73e8;
+						}
+						nav button[data-ativo] {
+						  background-color: #ffffff;
+						  border-color: #e0e0e0;
+						  color: #1a73e8;
+						  font-weight: bold;
+						  border-bottom: 2px solid #ffffff; /* Cobre a linha cinza do nav */
+						}
+						.aba {
+						  padding: 20px;
+						  background-color: #ffffff;
+						  border: 1px solid #e0e0e0;
+						  border-top: none;
+						}
+					`;
+					document.head.appendChild(estilo);
+				}
+				let bts = this.elemento.querySelectorAll(":scope > nav > button[data-aba]");
+				for (let bt of bts) {
+					let aba = bt.getAttribute("data-aba");
+					if (aba) {
+						bt.addEventListener("click", (e) => {
+							this.alternar(aba);
+						});
+					}
+					if (!bt.hasAttribute("data-ativo")) {
+						let conteudo = this.elemento.querySelector(":scope > #" + aba);
+						conteudo.hidden = true;
+					}
+				};
+			}
+			alternar(aba) {
+				let bts = this.elemento.querySelectorAll(":scope > nav > button[data-aba]");
+				for (let bt of bts) {
+					let abaAtual = bt.getAttribute("data-aba");
+					let conteudo = this.elemento.querySelector(":scope > #" + abaAtual);
+					if (abaAtual == aba) {
+						bt.setAttribute("data-ativo", "");
+						conteudo.hidden = false;
+					} else {
+						bt.removeAttribute("data-ativo");
+						conteudo.hidden = true;
+					}
+				}
+				if (this.aoAlterar) {
+					this.aoAlterar(aba);
+				}
+				if (this.abaAtiva) {
+					this.posicaoY[this.abaAtiva] = window.scrollY;
+				}
+				if (this.posicaoY[aba]) {
+					window.scrollTo(0, this.posicaoY[aba]);
+				} else {
+					window.scrollTo(0, 0);
+				}
+				this.abaAtiva = aba;
+			}
+		}
+
+		class ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				this.obj = obj;
+				if (!obj.tipo) {
+					obj.tipo = "FIELDSET";
+				}
+				if (!elemento) {
+					if (this.getTipo() == "campo" || this.getTipo() == "arquivo") {
+						elemento = document.createElement("div");
+					} else {
+						elemento = document.createElement(obj.tipo);
+					}
+				}
+				if (obj.titulo) {
+					let t = null;
+					if (elemento.nodeName == "FIELDSET") {
+						elemento.style.margin = "0";
+						t = document.createElement("legend");
+					} else {
+						t = document.createElement("label");
+					}
+					t.textContent = obj.titulo;
+					elemento.appendChild(t);
+				}
+				this.elemento = elemento;
+				this.elemento.tabIndex = "-1";
+				if (obj.qtdColunas) {
+					this.elemento.style.display = "grid";
+					this.elemento.style.gridTemplateColumns = "repeat(" + obj.qtdColunas + ", 1fr)";
+					this.elemento.style.gap = "5px";
+					this.elemento.style.marginBottom = "3px";
+				}
+				if (obj.spanV) {
+					this.elemento.style.gridColumn = "span " + obj.spanV;
+				}
+				if (obj.spanH) {
+					this.elemento.style.gridRow = "span " + obj.spanH;
+				}
+				this.nome = nome;
+				this.componentes = [];
+			}
+			add(item) {
+				this.componentes.push(item);
+				if (item.getTipo() == "modulo") {
+					throw new Error("Não é possível adicionar módulo");
+				}
+				if (!item.elemento.parentNode) {
+					this.elemento.appendChild(item.elemento);
+				}
+				item.pai = this;
+				item.init();
+			}
+			remover(item) {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível remover registro, pois está no modo de somente leitura");
+				}
+				let indice = this.componentes.indexOf(item);
+				this.componentes.splice(indice, 1);
+				item.elemento.remove();
+			}
+			getHashArquivos() {
+				let lista = [];
+				for (let item of this.componentes) {
+					if (item.getTipo() == "arquivo") {
+						let hash = item.getValor();
+						if (hash) {
+							lista.push(hash);
+						}
+					} else {
+						lista.push(...item.getHashArquivos());
+					}
+				}
+				return lista;
+			}
+			getValor() {
+				let lista = {};
+				for (let item of this.componentes) {
+					if (!item.vazio()) {
+						let valor = item.getValor();
+						if (typeof valor === "object" && !Array.isArray(valor)) {
+							lista[item.nome] = valor[item.nome];
+						} else {
+							lista[item.nome] = valor;
+						}
+					}
+				}
+				let saida = {};
+				saida[this.nome] = lista;
+				return saida;
+			}
+			setValor(valor) {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível atribuir valor, pois está no modo de somente leitura");
+				}
+				for (let item of this.componentes) {
+					if (!item.obj.calculado) {
+						let v = valor[item.nome];
+						if (v == null || v == undefined) {
+							item.setValor("");
+						} else {
+							item.setValor(v);
+						}
+					}
+				}
+			}
+			getCampos() {
+				let saida = {};
+				saida[this.nome] = {};
+				saida[this.nome].descricao = this.obj.titulo;
+				saida[this.nome].tipo = this.getTipo();
+				for (let item of this.componentes) {
+					let camposFilho = item.getCampos(); 
+					saida[this.nome][item.nome] = camposFilho[item.nome];
+				}
+				return saida;
+			}
+			vazio() {
+				let saida = true;
+				for (let item of this.componentes) {
+					saida = saida && item.vazio();
+				}
+				return saida;
+			}
+			getTipo() {
+				return "objeto";
+			}
+			clonar() {
+				return new this.constructor(
+					null,
+					this.nome, 
+					{...this.obj}
+				);
+			}
+			init() {
+				for (let item of this.componentes) {
+					if (!item.inicializado) {
+						item.init();
+					}
+				}
+				this.inicializado = true;
+			}
+			regrasBasicas(vazio) {
+				let lista = [];
+				if (this.obj.regras) {
+					let item = {};
+					let nome = this.obj.titulo;
+					if (!nome) {
+						nome = this.nome;
+					}
+					let strObj = this.getTipo();
+					strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
+					if (this.obj.regras.obrigatorio) {
+						if (vazio) {
+							item.mensagem = strObj + " '" + nome + "' está vazio";
+							item.componentes = [{componente: this}];
+							lista.push(item);
+						}
+					}
+					if (this.obj.regras.mascara) {
+						if (!this.obj.regras.mascara.test(this.getValor())) {
+							item.mensagem = strObj + " '" + nome + "' está não está com o valor de acordo com o formato esperado";
+							item.componentes = [{componente: this}];
+							lista.push(item);
+						}
+					}
+				}
+				return lista;
+			}
+			validar() {
+				let vazio = this.vazio();
+				if (!this.obj?.regras?.obrigatorio && vazio) {
+					return [];
+				}
+				let lista = this.regrasBasicas(vazio);
+				if (lista.length == 0) {
+					for (let item of this.componentes) {
+						let validacoes = item.validar();
+						for (let v of validacoes) {
+							let obj = {componente: this};
+							v.componentes.push(obj);
+							lista.push(v);
+						}
+					}
+				}
+				return lista;
+			}
+			getComponente(nome) {
+				let c = null;
+				for (let item of this.componentes) {
+					if (item.nome == nome) {
+						c = item;
+					}
+				}
+				return c;
+			}
+			limpar() {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível limpar, pois está no modo de somente leitura");
+				}
+				for (let item of this.componentes) {
+					item.limpar();
+				}
+			}
+			setSomenteLeitura(valor) {
+				this.somenteLeitura = valor;
+				for (let item of this.componentes) {
+					item.setSomenteLeitura(valor);
+				}
+				return this;
+			}
+			setVisibilidade(valor) {
+				this.elemento.hidden = !valor;
+				return this;
+			}
+			getSomenteLeitura() {
+				return this.somenteLeitura;
+			}
+			aoModificar(ultimo) {
+				//teria como cancelar a modificação? evento beforeinput?
+				if (this.pai) {
+					this.pai.aoModificar(this);
+				}
+			}
+			focar() {
+				this.elemento.focus();
+				return this;
+			}
+			getModuloSistema() {
+				let modulo = this;
+				while (modulo.pai && modulo.getTipo() != "modulo") {
+					modulo = modulo.pai;
+				}
+				if (modulo.getTipo() != "modulo") {
+					throw new Error("Não foi possível encontrar o módulo do sistema");
+				}
+				return modulo;
+			}
+		}
+		class ModuloSistemaDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				super(elemento, nome, obj);
+			}
+			getArquivo(hash) {
+				return this._arquivos[hash];
+			}
+			setArquivo(hash, arquivo) {
+				if (!this._arquivos) {
+					this._arquivos = {};
+				}
+				this._arquivos[hash] = arquivo;
+			}
+			getValor() {
+				let saida = super.getValor();
+				if (this._arquivos) {
+					let hashUsados = this.getHashArquivos();
+					for (let h in this._arquivos) {
+						if (!hashUsados.includes(h)) {
+							delete this._arquivos[h];
+						}
+					}
+					if (Object.keys(this._arquivos).length > 0) {
+						saida._arquivos = this._arquivos;
+					}
+				}
+				return saida;
+			}
+			setValor(valor) {
+				if (valor._arquivos) {
+					this._arquivos = valor._arquivos;
+				}
+				super.setValor(valor[this.nome]);
+			}
+			getTipo() {
+				return "modulo";
+			}
+		}
+		class ConjuntoDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				super(elemento, nome, obj);
+				this.btNovo = document.createElement("button");
+				this.btNovo.addEventListener('click', (e) => {
+					this.novo();
+				});
+				this.btNovo.className = "btn btn-plus";
+				this.btNovo.textContent = "novo";
+				this.btNovo.style.width = "50px";
+				this.btNovo.style.fontSize = "medium";
+				this.btNovo.style.gridColumn = "span " + obj.spanV;
+				this.elemento.appendChild(this.btNovo);
+			}
+			init() {
+				super.init();
+				for (let item of this.componentes) {
+					item.elemento.style.display = "none";
+					item.modelo = true;
+				}
+				this.novo();
+			}
+			getValor() {
+				let saida = [];
+				for (let item of this.componentes) {
+					if (!item.modelo && !item.vazio()) {
+						saida.push(item.getValor()[this.nome]);
+					}
+				}
+				return saida;
+			}
+			setValor(valor) {
+				if (valor && !Array.isArray(valor)) {
+					throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
+				}
+				if (this.obj.ordem) {
+					valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
+				}
+				if (valor.length > 0) {
+					this.limpar(true);
+					for (let v of valor) {
+						let n = this.novo();
+						n.setValor(v);
+					}
+				} else {
+					this.limpar();
+				}
+			}
+			getTipo() {
+				return "conjunto";
+			}
+			getTamanho() {
+				let tam = 0;
+				for (let item of this.componentes) {
+					if (!item.modelo) {
+						tam++;
+					}
+				}
+				return tam;
+			}
+			aposIncluir(item) {
+				//abstract
+			}
+			novo() {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível incluir registro, pois está no modo de somente leitura");
+				}
+				let obj = structuredClone(this.obj);
+				obj.tipo = "div";
+				obj.titulo = "";
+				let n = new ObjetoDOM(null, this.nome, obj);
+				for (let item of this.componentes) {
+					if (item.modelo) {
+						let c = item.clonar();
+						n.add(c);
+						if (this.obj.somentePrimeiroLabel) {
+							if (this.getTamanho() > 0) {
+								let labels = n.elemento.querySelectorAll("label");
+								labels.forEach(l => {
+									l.style.fontSize = "0px"; 
+								});
+							}
+						}
+					}
+				}
+				n.btExcluir = document.createElement("button");
+				n.btExcluir.className = "btn btn-clear";
+				n.btExcluir.textContent = "-";
+				n.btExcluir.style.alignSelf = "end";
+				n.btExcluir.addEventListener('click', (e) => {
+					if (confirm("Confirma remover?")) {
+						this.remover(n);
+					}
+				});
+				n.elemento.style.gridTemplateColumns += " max-content";
+				n.elemento.appendChild(n.btExcluir);
+				this.add(n);
+				this.elemento.appendChild(this.btNovo);
+				n.init();
+				this.aposIncluir(n);
+				return n;
+			}
+			remover(item) {
+				let qtdModelo = 0;
+				for (let item of this.componentes) {
+					if (item.modelo) {
+						qtdModelo++;
+					}
+				}
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível remover registro, pois está no modo de somente leitura");
+				}
+				let indice = this.componentes.indexOf(item);
+				this.componentes.splice(indice, 1);
+				item.elemento.remove();
+				if (indice == qtdModelo) {
+					let n = this.componentes[indice];
+					if (n) {
+						let labels = n.elemento.querySelectorAll("label");
+						labels.forEach(l => {
+							l.style.fontSize = ""; 
+						});
+					}
+				}
+				this.aoModificar(this);
+			}
+			limpar(naoIncluir) {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível limpar, pois está no modo de somente leitura");
+				}
+				for (let i = this.componentes.length - 1; i >= 0; i--) {
+					let item = this.componentes[i];
+					if (!item.modelo) {
+						this.remover(item);
+					}
+				}
+				if (!naoIncluir) {
+					this.novo();
+				}
+				this.aoModificar(this);
+			}
+			getCampos() {
+				let saida = {};
+				saida[this.nome] = {};
+				saida[this.nome].descricao = this.obj.titulo;
+				saida[this.nome].tipo = this.getTipo();
+				for (let item of this.componentes) {
+					if (item.modelo) {
+						let camposFilho = item.getCampos(); 
+						saida[this.nome][item.nome] = camposFilho[item.nome];
+					}
+				}
+				return saida;
+			}
+			getListaComponentes() {
+				let saida = [];
+				for (let item of this.componentes) {
+					if (!item.modelo) {
+						saida.push(item);
+					}
+				}
+				return saida;
+			}
+			vazio() {
+				let saida = true;
+				for (let item of this.componentes) {
+					if (!item.modelo) {
+						saida = saida && item.vazio();
+					}
+				}
+				return saida;
+			}
+			setSomenteLeitura(valor) {
+				super.setSomenteLeitura(valor);
+				if (valor) {
+					this.btNovo.style.display = "none";
+				} else {
+					this.btNovo.style.display = "";
+				}
+				for (let item of this.componentes) {
+					if (item.btExcluir) {
+						if (valor) {
+							item.btExcluir.style.display = "none";
+						} else {
+							item.btExcluir.style.display = "";
+						}
+					}
+				}
+			}
+			regrasBasicas() {
+				let lista = super.regrasBasicas(this.vazio());
+				if (this.obj?.regras?.campoChave) {
+					let nome = this.obj.titulo;
+					if (!nome) {
+						nome = this.nome;
+					}
+					let strObj = this.getTipo();
+					strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
+					let valor = this.getValor();
+					let chaves = valor.map(v => v[this.obj.regras.campoChave]);
+					if (new Set(chaves).size !== valor.length) {
+						let item = {};
+						item.mensagem = strObj + " '" + nome + "' está está com campo chave repetido";
+						item.componentes = [{componente: this}];
+						lista.push(item);
+					}
+				}
+				return lista;
+			}
+			validar() {
+				let lista = this.regrasBasicas(this.vazio());
+				for (let item of this.componentes) {
+					if (!item.modelo && !item.vazio()) {
+						let validacoes = item.validar();
+						for (let v of validacoes) {
+							let obj = {componente: this};
+							v.componentes.push(obj);
+							lista.push(v);
+						}
+					}
+				}
+				return lista;
+			}
+		}
+		class FichasDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				super(elemento, nome, obj);
+				this.div = document.createElement("div");
+				this.div.style.gridColumn = "span " + obj.qtdColunas;
+				this.div.style.marginTop = "20px";
+				let div = document.createElement("div");
+				div.className = "file-group";
+				this.div.appendChild(div);
+				this.btNovo = document.createElement("button");
+				this.btNovo.addEventListener('click', (e) => {
+					this.novo();
+				});
+				this.btNovo.textContent = "+";
+				this.btNovo.className = "btn btn-plus";
+				this.btNovo.title = "Incluir novo elemento";
+				div.appendChild(this.btNovo);
+				let btPrimeiro = document.createElement("button");
+				btPrimeiro.addEventListener('click', (e) => {
+					this.primeiro();
+				});
+				btPrimeiro.textContent = "<<";
+				btPrimeiro.className = "btn btn-view";
+				btPrimeiro.title = "Ir para o primeiro elemento";
+				div.appendChild(btPrimeiro);
+				let btAnterior = document.createElement("button");
+				btAnterior.addEventListener('click', (e) => {
+					this.anterior();
+				});
+				btAnterior.textContent = "<";
+				btAnterior.className = "btn btn-view";
+				btAnterior.title = "Ir para o elemento anterior";
+				div.appendChild(btAnterior);
+				let btProximo = document.createElement("button");
+				btProximo.addEventListener('click', (e) => {
+					this.proximo();
+				});
+				btProximo.textContent = ">";
+				btProximo.className = "btn btn-view";
+				btProximo.title = "Ir para o próximo elemento";
+				div.appendChild(btProximo);
+				let btUltimo = document.createElement("button");
+				btUltimo.addEventListener('click', (e) => {
+					this.ultimo();
+				});
+				btUltimo.textContent = ">>";
+				btUltimo.className = "btn btn-view";
+				btUltimo.title = "Ir para o último elemento";
+				div.appendChild(btUltimo);
+				this.btRemover = document.createElement("button");
+				this.btRemover.addEventListener('click', (e) => {
+					if (confirm("Confirma remover?")) {
+						this.remover();
+					}
+				});
+				this.btRemover.textContent = "-";
+				this.btRemover.className = "btn btn-clear";
+				this.btRemover.title = "Excluir o elemento posicionado";
+				div.appendChild(this.btRemover);
+				this.contador = document.createElement("label");
+				this.contador.style.marginLeft = "5px";
+				this.contador.textContent = "1/1";
+				this.div.appendChild(this.contador);
+				this.elemento.appendChild(this.div);
+				this.lista = [{}];
+				this.posicao = 0;
+			}
+			buscaValor() {
+				let reg = super.getValor()[this.nome];
+				this.lista[this.posicao] = reg;
+			}
+			mandaValor() {
+				let aux = this.getSomenteLeitura();
+				this.setSomenteLeitura(false);
+				let reg = this.lista[this.posicao]
+				super.setValor(reg);
+				this.setSomenteLeitura(aux);
+			}
+			primeiro() {
+				this.buscaValor();
+				this.posicao = 0;
+				this.mandaValor();
+				this.atualizarContador();
+			}
+			anterior() {
+				if (this.posicao > 0) {
+					this.buscaValor();
+					this.posicao--;
+					this.mandaValor();
+				}
+				this.atualizarContador();
+			}
+			proximo() {
+				if (this.posicao < this.lista.length - 1) {
+					this.buscaValor();
+					this.posicao++;
+					this.mandaValor();
+				}
+				this.atualizarContador();
+			}
+			ultimo() {
+				this.buscaValor();
+				this.posicao = this.lista.length - 1;
+				this.mandaValor();
+				this.atualizarContador();
+			}
+			getValor() {
+				let saida = [];
+				this.buscaValor();
+				for (let item of this.lista) {
+					let reg = item;
+					if (Object.keys(reg).length > 0) {
+						saida.push(reg);
+					}
+				}
+				return saida;
+			}
+			setValor(valor) {
+				if (valor && !Array.isArray(valor)) {
+					throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
+				}
+				if (this.obj.ordem) {
+					valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
+				}
+				if (valor.length > 0) {
+					this.limpar();
+					this.lista = valor;
+				} else {
+					this.limpar();
+				}
+				this.posicao = 0;
+				this.mandaValor();
+				this.atualizarContador();
+			}
+			getTipo() {
+				return "fichas";
+			}
+			novo() {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível incluir registro, pois está no modo de somente leitura");
+				}
+				this.buscaValor();
+				let novo = {};
+				this.lista.push(novo);
+				this.posicao = this.lista.length - 1;
+				this.mandaValor();
+				this.atualizarContador();
+				return novo;
+			}
+			remover() {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível remover registro, pois está no modo de somente leitura");
+				}
+				this.lista.splice(this.posicao, 1);
+				if (this.posicao == this.lista.length) {
+					if (this.posicao > 0) {
+						this.posicao--;
+					} else {
+						this.lista.push({});
+					}
+				}
+				this.mandaValor();
+				this.atualizarContador();
+				this.aoModificar(this);
+			}
+			limpar() {
+				if (this.somenteLeitura) {
+					throw new Error("Não é possível limpar, pois está no modo de somente leitura");
+				}
+				this.lista = [{}];
+				this.posicao = 0;
+				this.mandaValor();
+				this.atualizarContador();
+				this.aoModificar(this);
+			}
+			atualizarContador() {
+				this.contador.textContent = (this.posicao + 1) + "/" + this.lista.length;
+			}
+			vazio() {
+				if (this.getValor().length > 0) {
+					return false;
+				} else {
+					return true;
+				}
+			}
+			setSomenteLeitura(valor) {
+				super.setSomenteLeitura(valor);
+				if (valor) {
+					this.btNovo.style.display = "none";
+					this.btRemover.style.display = "none";
+				} else {
+					this.btNovo.style.display = "";
+					this.btRemover.style.display = "";
+				}
+			}
+			add(item) {
+				super.add(item);
+				this.elemento.appendChild(this.div);
+			}
+			validar() {
+				let lista = this.regrasBasicas(this.vazio());
+				let posAtual = this.posicao;
+				this.buscaValor();
+				for (let item of this.lista) {
+					if (Object.keys(item).length > 0)  { //Não está vazio
+						this.posicao = this.lista.indexOf(item);
+						this.mandaValor();
+						let validacoes = super.validar();
+						for (let v of validacoes) {
+							let obj = {componente: this, posicao: this.posicao};
+							v.componentes.push(obj);
+							lista.push(v);
+						}
+					}
+				}
+				this.posicao = posAtual;
+				this.mandaValor();
+				return lista;
+			}
+			focar(ind) {
+				super.focar(ind);
+				if (ind !== undefined && ind !== null) {
+					this.buscaValor();
+					this.posicao = ind;
+					this.mandaValor();
+					this.atualizarContador();
+				}
+			}
+		}
+		class ComboFiltroDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				if (!obj.tipo) {
+					obj.tipo = "div";
+				}
+				let elementoPai = null;
+				if (!elemento) {
+					elemento = document.createElement("div");
+				} else {
+					elementoPai = elemento.parentNode;
+				}
+				super(elementoPai, nome, obj);
+				elemento.style.height = "30px";
+				this.cs = new CustomSelect(elemento, obj); 
+				let label = this.elemento.querySelector("label");
+				if (label) {
+					label.appendChild(elemento);
+				} else {
+					this.elemento.appendChild(elemento);
+				}
+				this.campo = this.cs.elemento;
+				if (this.obj.opcoes) {
+					this.setOpcoes(this.obj.opcoes);
+				}
+			}
+			setOpcoes(opcoes) {
+				this.cs.setOptions(opcoes);
+			}
+			vazio() {
+				return this.cs.getValue() == null;
+			}
+			getValor() {
+				return this.cs.getValue();
+			}
+			setValor(valor) {
+				this.cs.setValue(valor);
+			}
+			getTipo() {
+				return "campo";
+			}
+		}
+		class CampoDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				if (!obj.tipo) {
+					obj.tipo = "input";
+					if (!obj.subtipo) {
+						obj.subtipo = "text";
+					}
+				}
+				let elementoPai = null;
+				if (!elemento) {
+					elemento = document.createElement(obj.tipo);
+					if (obj.subtipo) {
+						elemento.type = obj.subtipo;
+					}
+				} else {
+					elementoPai = elemento.parentNode;
+				}
+				super(elementoPai, nome, obj);
+				let label = this.elemento.querySelector("label");
+				if (label) {
+					label.appendChild(elemento);
+				} else {
+					this.elemento.appendChild(elemento);
+				}
+				this.campo = elemento;
+				this.campo.name = nome;
+				if (this.campo.type == "checkbox") {
+					this.campo.style.width = "26px";
+					this.campo.style.height = "26px";
+					this.campo.style.display = "flex";
+				} else {
+					this.campo.style.width = "100%";
+					if (!this.obj.atributos?.rows) {
+						this.campo.style.height = "30px";
+					}
+					this.campo.style.fontSize = "medium";
+					this.campo.style.fontFamily = "arial";
+				}
+				if (obj.atributos) {
+					for (let a in obj.atributos) {
+						this.campo.setAttribute(a, obj.atributos[a]);
+					}
+				}
+			}
+			init() {
+				super.init();
+				this.campo.addEventListener("change", (e) => {
+					this.aoModificar(e);
+				});
+				if (this.obj.opcoes) {
+					if (this.campo.nodeName == "SELECT") {
+						this.campo.add(new Option(""));
+						this.obj.opcoes.forEach(({ text, value }) => {
+							if (text && value) {
+								this.campo.add(new Option(text, value));
+							} else if (text) {
+								this.campo.add(new Option(text));
+							}
+						});
+					} else if (this.campo.nodeName == "INPUT") {
+						let tipo = this.campo.type;
+						if (tipo == "checkbox" || tipo == "radio") {
+							this.campo.remove();
+							this.campo = document.createElement("div");
+							this.campo.tabIndex = "-1";
+							this.elemento.appendChild(this.campo);
+							let nome = this.nome;
+							this.obj.opcoes.forEach(({ text, value }) => {
+								let r = document.createElement("input");
+								r.type = tipo;
+								r.value = value;
+								if (tipo == "radio") {
+									r.name = nome  + "_" + new Date().getTime();
+								} else {
+									r.name = nome + "." + value;
+								}
+								r.addEventListener("change", (e) => {
+									this.aoModificar(e);
+								});
+								let l = document.createElement("label");
+								l.textContent = text;
+								l.style.display = "block";
+								l.prepend(r);
+								this.campo.appendChild(l);
+							});
+						}
+					}
+				}
+			}
+			add() {
+				throw new Error("Não é possível adicionar em 'CampoDOM'");
+			}
+			getValor() {
+				if (this.campo.nodeName == "DIV") {
+					let selecionados = this.elemento.querySelectorAll('input:checked');
+					if (selecionados.length == 1 && selecionados[0].type == "radio") {
+						return selecionados[0].value;
+					} else if (selecionados.length > 0 && selecionados[0].type == "checkbox") {
+						let sai = {};
+						sai[this.nome] = {};
+						selecionados.forEach(c => {
+							sai[this.nome][c.value] = c.checked;
+						});
+						return sai;
+					} else {
+						return null;
+					}
+				} else if (this.campo.type == "checkbox" || this.campo.type == "radio") {
+					return this.campo.checked;
+				} else {
+					return this.campo.value;
+				}
+			}
+			setValor(valor) {
+				if (this.campo.nodeName == "DIV") {
+					let selecionados = this.elemento.querySelectorAll('input');
+					selecionados.forEach(c => {
+						if (c.type == "radio") {
+							if (c.value == valor) {
+								c.checked = true;
+							} else {
+								c.checked = false;
+							}
+						} else if (c.type == "checkbox") {
+							if (valor[c.value]) {
+								c.checked = true;
+							} else {
+								c.checked = false;
+							}
+						}
+					});
+				} else if (this.campo.type == "checkbox"|| this.campo.type == "radio") {
+					this.campo.checked = valor;
+				} else {
+					this.campo.value = valor;
+				}
+			}
+			setOpcoes(opcoes) {
+				let valor = this.getValor();
+				this.campo.length = 1;
+				opcoes.forEach(item => {
+					const o = new Option(item.text, item.value);
+					this.campo.add(o);
+				});
+				this.setValor(valor);
+			}
+			vazio() {
+				if (this.getValor()) {
+					return false;
+				} else {
+					return true;
+				}
+			}
+			getTipo() {
+				return "campo";
+			}
+			limpar() {
+				if (this.campo.nodeName == "DIV") {
+					let selecionados = this.elemento.querySelectorAll('input:checked');
+					selecionados.forEach(c => {
+						c.checked = false;
+					});
+				} else if (this.campo.type == "checkbox" || this.campo.type == "radio") {
+					this.campo.checked = false;
+				} else {
+					this.campo.value = "";
+				}
+			}
+			setSomenteLeitura(valor) {
+				if (valor) {
+					if (this.campo.nodeName == "DIV") {
+						let selecionados = this.elemento.querySelectorAll('input');
+						selecionados.forEach(c => {
+							c.setAttribute("disabled", true);
+						});
+					} else {
+						this.campo.setAttribute("disabled", true);
+					}
+				} else {
+					if (this.campo.nodeName == "DIV") {
+						let selecionados = this.elemento.querySelectorAll('input');
+						selecionados.forEach(c => {
+							c.removeAttribute("disabled");
+						});
+					} else {
+						this.campo.removeAttribute("disabled");
+					}
+				}
+			}
+			focar() {
+				this.campo.focus();
+			}
+		}
+		class CampoArquivo extends CampoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.tipo = "input";
+				obj.subtipo = "file";
+				super(elemento, nome, obj);
+			}
+			init() {
+				super.init();
+				this.campo.hidden = true;
+				let div = document.createElement("div");
+				div.tabIndex = "-1";
+				div.className = "file-group";
+				this.campo.parentNode.appendChild(div);
+				this.campo.parentNode.style.display = "inline-grid";
+				div.appendChild(this.campo);
+				this.btnSelect = document.createElement("button");
+				this.btnSelect.title = "Clique para anexar um arquivo";
+				this.btnSelect.className = "btn btn-plus";
+				this.btnSelect.textContent = "anexar";
+				this.btnSelect.addEventListener("click", (e) => {
+					this.campo.click();
+				});
+				this.campo.addEventListener("change", async (e) => {
+					let arquivo = this.campo.files[0];
+					if (arquivo) {
+						try {
+							const buffer = await arquivo.arrayBuffer();
+							const hashUnico = await this.calcularHashNativo(buffer);
+							const leitorBase64 = new FileReader();
+							leitorBase64.readAsDataURL(arquivo);
+							leitorBase64.onload = (evt64) => {
+								const stringBase64 = evt64.target.result;
+								let infoArquivo = {
+									nome: arquivo.name,
+									tipo: arquivo.type || 'application/octet-stream',
+									tamanho_bytes: arquivo.size,
+									hash_sha256: hashUnico,
+									conteudo: stringBase64
+								};
+								this.hash = infoArquivo.hash_sha256;
+								//Gravar a informação do arquivo no primeiro nível do Sistema
+								let sistema = this.getModuloSistema();
+								sistema.setArquivo(this.hash, infoArquivo);
+								this.configuraBotoes(infoArquivo.nome);
+							};
+						} catch (erro) {
+							console.error("Erro interno ao processar o arquivo selecionado:", erro);
+							alert("Ocorreu um erro ao processar este arquivo. Verifique o console do navegador.");
+						}
+					} else {
+						this.configuraBotoes();
+					}
+				});
+				div.appendChild(this.btnSelect);
+				this.btnView = document.createElement("button");
+				this.btnView.className = "btn btn-view";
+				this.btnView.textContent = "👁";
+				this.btnView.hidden = true;
+				this.btnView.addEventListener("click", (e) => {
+					let sistema = this.getModuloSistema();
+					let arquivo = sistema.getArquivo(this.hash);
+					if (arquivo) {
+						const linkTemporario = document.createElement('a');
+						// Passa a string Base64 do JSON para a rota de download
+						linkTemporario.href = arquivo.conteudo;
+						linkTemporario.download = arquivo.nome;
+						// Simula a ação automática de clique
+						document.body.appendChild(linkTemporario);
+						linkTemporario.click();
+						document.body.removeChild(linkTemporario);
+					} else {
+						throw new Error("Arquivo não encontrado: " + this.hash);
+					}
+				});
+				this.btnSelect.after(this.btnView);
+				this.btnClear = document.createElement("button");
+				this.btnClear.className = "btn btn-clear";
+				this.btnClear.textContent = "🗑";
+				this.btnClear.title = "Remove o arquivos selecionado";
+				this.btnClear.hidden = true;
+				this.btnClear.addEventListener("click", (e) => {
+					this.campo.value = "";
+					this.btnView.hidden = true;
+					this.btnClear.hidden = true;
+					this.btnSelect.textContent = "anexar";
+					this.btnSelect.title = "Clique para anexar um arquivo";
+					this.hash = null;
+				});	
+				this.btnView.after(this.btnClear);
+			}
+			configuraBotoes(nome) {
+				const hasFile = !!this.hash;
+				this.btnView.hidden = !hasFile;
+				this.btnView.title = "Exibe o arquivo '" + nome + "'";
+				this.btnClear.hidden = !hasFile;
+				if (hasFile) {
+					this.btnSelect.textContent = "alterar";
+					this.btnSelect.title = "Clique para alterar o arquivo selecionado";
+				} else {
+					this.btnSelect.textContent = "anexar";
+					this.btnSelect.title = "Clique para anexar um arquivo";
+				}
+			}
+	        async calcularHashNativo(buffer) {
+				const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+				const hashArray = Array.from(new Uint8Array(hashBuffer));
+				return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+			}
+			setSomenteLeitura(valor) {
+				this.btnSelect.disabled = valor;
+				this.btnClear.disabled = valor;
+			}
+			focar() {
+				this.btnSelect.parentNode.focus();
+			}
+			limpar(valor) {
+				this.btnClear.click();
+			}
+			vazio() {
+				if (this.hash) {
+					return false;
+				} else {
+					return true;
+				}
+			}
+			getValor() {
+				return this.hash;
+			}
+			setValor(valor) {
+				this.hash = valor;
+				let sistema = this.getModuloSistema();
+				if (valor) {
+					let arquivo = sistema.getArquivo(valor);
+					this.configuraBotoes(arquivo.nome);
+				} else {
+					this.configuraBotoes();
+				}
+			}
+			getTipo() {
+				return "arquivo";
+			}
+		}
+		class CampoCPF extends CampoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.tipo = "input";
+				obj.subtipo = "text";
+				if (!obj.regras) {
+					obj.regras = {};
+				}
+				obj.regras.mascara = /^\d{11}$/;
+				super(elemento, nome, obj);
+			}
+			#formatar(cpf) {
+				let valor = cpf.replace(/\D/g, '');
+				return valor
+					.replace(/^(\d{3})(\d)/, '$1.$2')
+					.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+					.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
+					.substring(0, 14); // Limita ao tamanho máximo do CPF mascarado
+			}
+			#validar(cpf) {
+				if (cpf.length !== 11) return false;
+				// Elimina CPFs com todos os números iguais (ex: 111.111.111-11)
+				if (/^(\d)\1{10}$/.test(cpf)) return false;
+				// Validação do 1º Dígito Verificador
+				let soma = 0;
+				for (let i = 0; i < 9; i++) {
+					soma += parseInt(cpf.charAt(i)) * (10 - i);
+				}
+				let resto = (soma * 10) % 11;
+				let digito1 = resto === 10 || resto === 11 ? 0 : resto;
+				if (digito1 !== parseInt(cpf.charAt(9))) return false;
+				// Validação do 2º Dígito Verificador
+				soma = 0;
+				for (let i = 0; i < 10; i++) {
+					soma += parseInt(cpf.charAt(i)) * (11 - i);
+				}
+				resto = (soma * 10) % 11;
+				let digito2 = resto === 10 || resto === 11 ? 0 : resto;
+				if (digito2 !== parseInt(cpf.charAt(10))) return false;
+				return true;
+			}
+			#limparValor() {
+				let limpo = this.campo.value.replace(/[./-]/g, '');
+				limpo = limpo.padStart(11, '0');
+				return limpo;
+			}
+			validar() {
+				let vazio = this.vazio();
+				let valor = this.getValor();
+				if (!vazio) {
+					this.setValor(valor);
+				}
+				let lista = super.validar();
+				if (!vazio) {
+					if (this.#validar(valor)) {
+						this.setValor(this.#formatar(valor));
+					} else {
+						let item = {};
+						let nome = this.obj.titulo;
+						if (!nome) {
+							nome = this.nome;
+						}
+						item.mensagem = "Campo '" + nome + "' não está correto";
+						item.componentes = [{componente: this}];
+						lista.push(item);
+					}
+				}
+				return lista;
+			}
+			getValor() {
+				let valor = "";
+				if (this.campo.value) {
+					valor = this.#limparValor();
+				}
+				return valor;
+			}
+			setValor(valor) {
+				super.setValor(this.#formatar(valor));
+			}
+		}
+		class CampoCNPJ extends CampoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.tipo = "input";
+				obj.subtipo = "text";
+				if (!obj.regras) {
+					obj.regras = {};
+				}
+				obj.regras.mascara = /^[A-Z0-9]{12}\d{2}$/;
+				super(elemento, nome, obj);
+			}
+			#formatar(cnpj) {
+				let valor = cnpj.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+				if (valor.length > 0 && valor.length <= 4 && cnpj.includes('-')) {
+					valor = valor.padStart(14, '0');
+				}
+				return valor
+					.replace(/^([A-Z0-9]{2})([A-Z0-9])/, '$1.$2')
+					.replace(/^([A-Z0-9]{2})\.([A-Z0-9]{3})([A-Z0-9])/, '$1.$2.$3')
+					.replace(/^([A-Z0-9]{2})\.([A-Z0-9]{3})\.([A-Z0-9]{3})([A-Z0-9])/, '$1.$2.$3/$4')
+					.replace(/^([A-Z0-9]{2})\.([A-Z0-9]{3})\.([A-Z0-9]{3})\/([A-Z0-9]{4})([0-9])/, '$1.$2.$3/$4-$5')
+					.substring(0, 18); // Limita ao tamanho máximo do CNPJ mascarado
+			}
+			#validar(cnpj) {
+				cnpj = cnpj.replace(/[^\d]+/g, '');
+				if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) {
+					return false;
+				}
+				let tamanho = cnpj.length - 2;
+				let numeros = cnpj.substring(0, tamanho);
+				let digitos = cnpj.substring(tamanho);
+				let soma = 0;
+				let pos = tamanho - 7;
+				for (let i = tamanho; i >= 1; i--) {
+					soma += numeros.charAt(tamanho - i) * pos--;
+					if (pos < 2) pos = 9;
+				}
+				let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+				if (resultado !== parseInt(digitos.charAt(0))) return false;
+				tamanho = tamanho + 1;
+				numeros = cnpj.substring(0, tamanho);
+				soma = 0;
+				pos = tamanho - 7;
+				for (let i = tamanho; i >= 1; i--) {
+					soma += numeros.charAt(tamanho - i) * pos--;
+					if (pos < 2) pos = 9;
+				}
+				resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+				if (resultado !== parseInt(digitos.charAt(1))) return false;
+				return true;
+			}
+			#limparValor() {
+				let limpo = this.campo.value.replace(/[./-]/g, '');
+				limpo = limpo.padStart(14, '0');
+				return limpo
+			}
+			validar() {
+				let vazio = this.vazio();
+				let valor = this.getValor();
+				if (!vazio) {
+					this.setValor(valor);
+				}
+				let lista = super.validar();
+				if (!vazio) {
+					if (this.#validar(valor)) {
+						this.setValor(this.#formatar(valor));
+					} else {
+						let item = {};
+						let nome = this.obj.titulo;
+						if (!nome) {
+							nome = this.nome;
+						}
+						item.mensagem = "Campo '" + nome + "' não está correto";
+						item.componentes = [{componente: this}];
+						lista.push(item);
+					}
+				}
+				return lista;
+			}
+			getValor() {
+				let valor = "";
+				if (this.campo.value) {
+					valor = this.#limparValor();
+				}
+				return valor;
+			}
+			setValor(valor) {
+				super.setValor(this.#formatar(valor));
+			}
+		}
+		class CNPJCPF extends ObjetoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.qtdColunas = 3;
+				if (!obj.tipo) {
+					obj.tipo = "div";
+				}
+				let aux = obj;
+				obj = structuredClone(obj);
+				delete obj.titulo;
+				super(elemento, nome, obj);
+				this.obj = aux;
+				this.tipo = new CampoDOM(null, "tipo", {
+					titulo: "Tipo", 
+					tipo: "select",
+					opcoes: [{text: "CNPJ", value: "cnpj"}, {text: "CPF", value: "cpf"}],
+					regras: {obrigatorio: true}
+				});
+				this.add(this.tipo);
+				this.cnpj = new CampoCNPJ(null, "documento", {
+					titulo: "CNPJ", 
+					spanV: 2, 
+				}).setVisibilidade(false);
+				this.add(this.cnpj);
+				this.cpf = new CampoCPF(null, "documento", {
+					titulo: "CPF", 
+					spanV: 2, 
+				}).setVisibilidade(false);
+				this.add(this.cpf);
+				this.tipo.aoModificar = (e) => {
+					super.aoModificar(this.tipo);
+					if (this.tipo.getValor() == "cnpj") {
+						this.cnpj.setVisibilidade(true);
+						this.cpf.setVisibilidade(false);
+						this.cpf.limpar();
+					} else if (this.tipo.getValor() == "cpf") {
+						this.cnpj.setVisibilidade(false);
+						this.cnpj.limpar();
+						this.cpf.setVisibilidade(true);
+					} else {
+						this.cnpj.setVisibilidade(false);
+						this.cnpj.limpar();
+						this.cpf.setVisibilidade(false);
+						this.cpf.limpar();
+					}
+				}
+			}
+			validar() {
+				let lista = super.validar();
+				let tipo = this.tipo.getValor();
+				if (tipo == "cnpj" && this.cnpj.vazio()) {
+					let item = {};
+					item.mensagem = "É necessário preencher o campo CNPJ";
+					item.componentes = [{componente: this.cnpj}, {componente: this}, ];
+					lista.push(item);					
+				} else if (tipo == "cpf" && this.cpf.vazio()) {
+					let item = {};
+					item.mensagem = "É necessário preencher o campo CPF";
+					item.componentes = [{componente: this.cpf}, {componente: this}, ];
+					lista.push(item);					
+				}
+				return lista;
+			}
+			setValor(valor) {
+				super.setValor(valor);
+				this.tipo.aoModificar(this.tipo.campo);
+			}
+		}
+		class IntervaloDOM extends ObjetoDOM {
+			constructor(elemento, nome, obj, subtipo) {
+				if (!obj) {
+					obj = {};
+				}
+				if (!obj.tipo) {
+					obj.tipo = "div";
+				}
+				if (!obj.qtdColunas) {
+					obj.qtdColunas = 2;
+				}
+				if (!subtipo) {
+					subtipo = "date";
+				}
+				let aux = obj;
+				obj = structuredClone(obj);
+				delete obj.titulo;
+				super(elemento, nome, obj);
+				this.obj = aux;
+				this.inicio = new CampoDOM(null, "inicio", {
+					titulo: "Início",
+					subtipo: subtipo,
+					regras: {obrigatorio: true},
+				})
+				this.add(this.inicio);
+				this.fim = new CampoDOM(null, "fim", {
+					titulo: "Fim",
+					subtipo: subtipo,
+					regras: {obrigatorio: true},
+				})
+				this.add(this.fim);
+			}
+			validar() {
+				let lista = super.validar();
+				if (!this.inicio.vazio() && !this.fim.vazio() && this.inicio.getValor() > this.fim.getValor()) {
+					let item = {};
+					item.mensagem = "Início não pode ser maior do que fim";
+					item.componentes = [{componente: this.inicio}, {componente: this}, ];
+					lista.push(item);					
+				}
+				return lista;
+			}
+		}
+		class CampoEMail extends CampoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.tipo = "input";
+				obj.subtipo = "text";
+				if (!obj.regras) {
+					obj.regras = {};
+				}
+				obj.regras.mascara = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+				super(elemento, nome, obj);
+			}
+		}
+		class CampoTelefone extends CampoDOM {
+			constructor(elemento, nome, obj) {
+				if (!obj) {
+					obj = {};
+				}
+				obj.tipo = "input";
+				obj.subtipo = "text";
+				if (!obj.regras) {
+					obj.regras = {};
+				}
+				obj.regras.mascara = /^(\+?55\s?)?(\(?\d{2}\)?\s?)?(9?\d{4}-?\d{4}|\d{4}-?\d{4})$/;
+				super(elemento, nome, obj);
+			}
+			#formatar(telefone) {
+				if (!telefone) return "";
+				const numeros = telefone.replace(/[^\d]+/g, '');
+				const tam = numeros.length;
+				switch (tam) {
+					case 8:
+						return `${numeros.substring(0, 4)}-${numeros.substring(4)}`;
+					case 9:
+						return `${numeros.substring(0, 5)}-${numeros.substring(5)}`;
+					case 10:
+						return `(${numeros.substring(0, 2)}) ${numeros.substring(2, 6)}-${numeros.substring(6)}`;
+					case 11:
+						return `(${numeros.substring(0, 2)}) ${numeros.substring(2, 7)}-${numeros.substring(7)}`;
+					case 12:
+						return `+${numeros.substring(0, 2)} (${numeros.substring(2, 4)}) ${numeros.substring(4, 8)}-${numeros.substring(8)}`;
+					case 13:
+						return `+${numeros.substring(0, 2)} (${numeros.substring(2, 4)}) ${numeros.substring(4, 9)}-${numeros.substring(9)}`;
+					default:
+						return telefone;
+				}
+			}
+			#limparValor() {
+				let valor = this.campo.value;
+				let numeros = valor.replace(/[^\d]+/g, '');
+				if (numeros.length <= 11) {
+					numeros = "55" + numeros;
+				}
+				if (numeros.length === 11) { // 55 + 9 dígitos locais
+					numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
+				} else if (numeros.length === 10) { // 55 + 8 dígitos locais
+					numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
+				}
+				return numeros; // Retorna sempre algo como "5511999999999"			
+			}
+			#validar(telefone) {
+				const apenasNumeros = telefone.replace(/[^\d]+/g, '');
+				if (/^(\d)\1+$/.test(apenasNumeros)) return false;
+				// Validação extra de contexto brasileiro (opcional, mas altamente recomendada):
+				// Se o usuário digitou o DDD, garantimos que o número não começa com 0 ou 1 no DDD (não existem DDDs começados com 0 ou 1)
+				if (apenasNumeros.length >= 10) {
+					// Se tem mais de 10 dígitos, isola os dígitos que representam o DDD
+					const ddd = apenasNumeros.length === 13 || apenasNumeros.length === 12 
+						? apenasNumeros.substring(2, 4) 
+						: apenasNumeros.substring(0, 2);
+					if (ddd.startsWith('0') || ddd.startsWith('1')) return false;
+				}
+				return true;
+			}
+			validar() {
+				let vazio = this.vazio();
+				let valor = this.getValor();
+				if (!vazio) {
+					this.setValor(valor);
+				}
+				let lista = super.validar();
+				if (!vazio) {
+					if (this.#validar(valor)) {
+						this.setValor(this.#formatar(valor));
+					} else {
+						let item = {};
+						let nome = this.obj.titulo;
+						if (!nome) {
+							nome = this.nome;
+						}
+						item.mensagem = "Telefone '" + nome + "' não está correto";
+						item.componentes = [{componente: this}];
+						lista.push(item);
+					}
+				}
+				return lista;
+			}
+			getValor() {
+				let valor = this.#limparValor();
+				return valor;
+			}
+			setValor(valor) {
+				super.setValor(this.#formatar(valor));
+			}
+		}
+		/* fim das classes */
+		
+		class ContaCTB extends ObjetoDOM {
+			constructor(elemento, nome) {
+				super(elemento, nome, {qtdColunas: 10, spanV: 10});
+				this.add(new CampoDOM(null, "codigo", {
+					titulo: "Código",
+					tipo: "input", 
+					subtipo: "number",
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "descricao", {
+					titulo: "Descrição", spanV: 6,
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "saldo", {
+					titulo: "Saldo", 
+					tipo: "input", 
+					subtipo: "number", 
+					//calculado: true,
+					spanV: 2,
+					atributos: {readonly: true},
+				}));
+				this.add(new CampoDOM(null, "sintetica", {
+					titulo: "Sintética", 
+					tipo: "input", 
+					subtipo: "checkbox",
+				}));
+			}
+			setValor(valor) {
+				//Se for o primeiro nível, não pode mudar o código nem se é Sintética
+				if (this.pai.getTipo() == "modulo") {
+					if (!valor) {
+						valor = {};
+					}
+					valor.codigo = this.getComponente("codigo").getValor();
+					valor.sintetica = this.getComponente("sintetica").getValor();
+					if (!valor.descricao) {
+						valor.descricao = this.getComponente("descricao").getValor();
+					}
+				}
+				super.setValor(valor);
+			}
+			limpar() {
+				//Se for o primeiro nível, não deixa limpar
+				if (this.pai.getTipo() == "modulo") {
+					valor = {};
+					valor.codigo = this.getComponente("codigo").getValor();
+					valor.sintetica = this.getComponente("sintetica").getValor();
+					valor.descricao = this.getComponente("descricao").getValor();
+				}
+				super.limpar();
+				if (this.pai.getTipo() == "modulo") {
+					this.setValor(valor);
+				}
+			}
+			init() {
+				super.init();
+				let conta = this.getComponente("codigo");
+				let titulo = conta.getValor() + ".";
+				let sub = new ConjuntoContaCTB(this, titulo);
+				this.add(sub);
+			}
+			alterarSaldo(valor, natureza) {
+				ContaCTB.alterarSaldo(this, valor, natureza);
+			}
+			static #alterarSaldo(componente, valor, natureza, primeiraConta) {
+				while (componente instanceof ConjuntoDOM) {
+					componente = componente.pai;
+				}
+				let compSaldo = componente.getComponente("saldo");
+				if (compSaldo) {
+					let saldo = compSaldo.getValor();
+					if (saldo) {
+						saldo = Number(saldo);
+					} else {
+						saldo = 0;
+					}
+					if (primeiraConta instanceof Ativos || primeiraConta instanceof Despesas) {
+						saldo += (natureza === 'D') ? valor : -valor;
+					} else {
+						saldo += (natureza === 'C') ? valor : -valor;
+					}
+					compSaldo.setValor(saldo);
+				}
+				let contaPai = componente.pai;
+				if (contaPai) {
+					ContaCTB.#alterarSaldo(contaPai, valor, natureza, primeiraConta);
+					contaPai = contaPai.pai;
+				}
+			}
+			static alterarSaldo(componente, valor, natureza) {
+				let primeiraConta = componente;
+				while (!(primeiraConta instanceof ContaCTB)) {
+					primeiraConta = primeiraConta.pai;
+				}
+				if (componente.getComponente("sintetica").getValor()) {
+					throw new Error("Lançamento indevido em conta Sintética");
+				}
+				ContaCTB.#alterarSaldo(componente, valor, natureza, primeiraConta);
+			}
+			static #zerarSaldo(componente) {
+				componente.getComponente("saldo").setValor("");
+				let sub = componente.getComponente("sub");
+				if (sub) {
+					for (let c of sub.getListaComponentes()) {
+						ContaCTB.#zerarSaldo(c);
+					}
+				}
+			}
+			zerarSaldo() {
+				ContaCTB.#zerarSaldo(this);
+			}
+		}
+		class ConjuntoContaCTB extends ConjuntoDOM {
+			constructor(contaCTB, titulo) {
+				let obj = structuredClone(contaCTB.obj);
+				obj.titulo = titulo;
+				obj.regras = {campoChave: "codigo"};
+				obj.spanV += 2;
+				super(null, "sub", obj);
+				this.contaCTB =  contaCTB;
+				for (let c of contaCTB.componentes) {
+					if (c instanceof  CampoDOM) {
+						this.add(c.clonar());
+					}
+				}
+				this.add(new CampoDOM(null, "bt", {titulo: "\u00A0", tipo: "button"}));
+				let legenda = this.elemento.querySelector("legend");
+				const iconeSpan = document.createElement('span');
+				iconeSpan.textContent = '\u26F6'; 
+				iconeSpan.style.cursor = 'pointer';
+				iconeSpan.style.marginRight = '8px';
+				iconeSpan.title = "Clique para expandir";
+				let descLegenda = legenda.textContent;
+				iconeSpan.addEventListener("click", (e) => {
+					event.stopPropagation();
+					const estaExpandido = this.elemento.classList.toggle("tela-cheia");
+					if (estaExpandido) {
+						let desc = this.pai.getComponente("descricao").getValor();
+						legenda.textContent = descLegenda + " (" + desc + ")";
+						iconeSpan.title = "Clique para reduzir";
+					} else {
+						legenda.textContent = descLegenda;
+						iconeSpan.title = "Clique para expandir";
+					}
+					legenda.prepend(iconeSpan);
+					this.elemento.scrollIntoView({
+						behavior: "smooth",
+						block: "start"
+					});
+				});
+				legenda.prepend(iconeSpan);
+			}
+			novo() {
+				let n = super.novo();
+				n.alterarSaldo = (valor, natureza) => {
+					ContaCTB.alterarSaldo(n, valor, natureza);
+				}
+				n.elemento.style.gridTemplateColumns += " max-content";
+				let bt = n.getComponente("bt");
+				bt.campo.textContent = "criar";
+				bt.campo.className = "btn btn-plus";
+				bt.campo.title = "Cria um sub conjunto de contas";
+				bt.campo.addEventListener("click", (e) => {
+					if (bt.campo.textContent == "criar") {
+						let codigo = n.getComponente("codigo").getValor();
+						if (!codigo) {
+							throw new Error("É necessário definir o código");
+						}
+						let titulo = this.obj.titulo + codigo + ".";
+						n.add(new ConjuntoContaCTB(this.contaCTB, titulo));
+						bt.campo.textContent = "remover";
+						bt.campo.className = "btn btn-clear";
+						bt.campo.title = "Remove o sub conjunto de contas criada";
+					} else {
+						if (confirm("Confirma remover?")) {
+							let sub = n.getComponente("sub");
+							n.remover(sub);
+							bt.campo.textContent = "criar";
+							bt.campo.title = "Cria um sub conjunto de contas";
+							bt.campo.className = "btn btn-plus";
+						}
+					}
+				});
+				return n;
+			}
+			setValor(valor) {
+				super.setValor(valor);
+				let lista = this.getListaComponentes();
+				//console.log("valor", valor);
+				for (let v of valor) {
+					if (v.sub) {
+						let item = lista[valor.indexOf(v)];
+						let titulo = this.obj.titulo + v.codigo + ".";
+						let conj = new ConjuntoContaCTB(this.contaCTB, titulo);
+						item.add(conj);
+						let bt = item.getComponente("bt");
+						bt.campo.textContent = "remover";
+						bt.campo.className = "btn btn-clear";
+						bt.campo.title = "Remove o sub conjunto de contas criada";
+						conj.setValor(v.sub);
+					}
+				}
+			}
+			validar() {
+				let lista = super.validar();
+				let valor = this.getValor();
+				const descricoes = valor.map(v => v.descricao);
+				if (new Set(descricoes).size < descricoes.length) {
+					let item = {};
+					item.mensagem = "Descrição está repetida";
+					item.componentes = [{componente: this}];
+					lista.push(item);
+				}
+				return lista;
+			}
+		}
+		class Ativos extends ContaCTB {
+			constructor(aba) {
+				super(document.getElementById("ativos"), "ativos", {qtdColunas: 10});
+				let codigo = this.getComponente("codigo");
+				codigo.setValor(1);
+				codigo.campo.setAttribute("readonly" , true);
+				let descricao = this.getComponente("descricao");
+				descricao.setValor("Ativo (Bens e Direitos)");
+				let sintetica = this.getComponente("sintetica");
+				sintetica.setValor(true);
+				sintetica.campo.setAttribute("disabled" , true);
+				this.aba = aba;
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaAtivo");
+			}
+		}
+		class Passivos extends ContaCTB {
+			constructor(aba) {
+				super(document.getElementById("passivos"), "passivos", {qtdColunas: 10});
+				let codigo = this.getComponente("codigo");
+				codigo.setValor(2);
+				codigo.campo.setAttribute("readonly" , true);
+				let descricao = this.getComponente("descricao");
+				descricao.setValor("Passivo (Obrigações e Dívidas)");
+				let sintetica = this.getComponente("sintetica");
+				sintetica.setValor(true);
+				sintetica.campo.setAttribute("disabled" , true);
+				this.aba = aba;
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaPassivo");
+			}
+		}
+		class Receitas extends ContaCTB {
+			constructor(aba) {
+				super(document.getElementById("receitas"), "receitas", {qtdColunas: 10});
+				let codigo = this.getComponente("codigo");
+				codigo.setValor(3);
+				codigo.campo.setAttribute("readonly" , true);
+				let descricao = this.getComponente("descricao");
+				descricao.setValor("Receitas ");
+				let sintetica = this.getComponente("sintetica");
+				sintetica.setValor(true);
+				sintetica.campo.setAttribute("disabled" , true);
+				this.aba = aba;
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaReceita");
+			}
+		}
+		class Despesas extends ContaCTB {
+			constructor(aba) {
+				super(document.getElementById("despesas"), "despesas", {qtdColunas: 10});
+				let codigo = this.getComponente("codigo");
+				codigo.setValor(4);
+				codigo.campo.setAttribute("readonly" , true);
+				let descricao = this.getComponente("descricao");
+				descricao.setValor("Custos e Despesas");
+				let sintetica = this.getComponente("sintetica");
+				sintetica.setValor(true);
+				sintetica.campo.setAttribute("disabled" , true);
+				this.aba = aba;
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaDespesa");
+			}
+		}
+		class ApuracaoResultado extends ContaCTB {
+			constructor(aba) {
+				super(document.getElementById("apuracaoResultado"), "apuracaoResultado", {qtdColunas: 10});
+				let codigo = this.getComponente("codigo");
+				codigo.setValor(5);
+				codigo.campo.setAttribute("readonly" , true);
+				let descricao = this.getComponente("descricao");
+				descricao.setValor("Apuração de Resultados (ARE)");
+				let sintetica = this.getComponente("sintetica");
+				sintetica.setValor(false);
+				sintetica.campo.setAttribute("disabled" , true);
+				this.add(new ComboFiltroDOM(null, "contaLucroPrejuizo", {
+					titulo: "Conta de Lucro/Prejuízo",
+					spanV: 7,
+					regras: {obrigatorio: true}
+				}));
+				this.aba = aba;
+				this.abaApuracao = new ControleAba(document.getElementById("abaApuracaoResultado"));
+				this.add(new RealizarApuracao(this.abaApuracao));
+			}
+			preencherCombos() {
+				let listaContas = this.pai.getListaContas();
+				listaContas = listaContas.filter(lc => lc.codigo.startsWith("2."));
+				let opcoes = listaContas.map(({ codigo, descricao }) => ({
+					text: codigo + " - " + descricao,
+					value: codigo
+				}));
+				this.getComponente("contaLucroPrejuizo").setOpcoes(opcoes);
+			}
+			setValor(valor) {
+				this.preencherCombos();
+				super.setValor(valor);
+			}
+			init() {
+				//Não realiza o init de contaCTB
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaApuracaoResultado");
+			}
+		}
+		class RealizarApuracao extends ObjetoDOM {
+			constructor(aba) {
+				super(document.getElementById("realizarApuracao"), "realizarApuracao", {qtdColunas: 5});
+				this.aba = aba;
+				this.add(new IntervaloDOM(null, "periodo", {
+					titulo: "Período",
+					spanV: 2,
+					regras: {obrigatorio: true},
+				}));
+				this.add(new CampoDOM(null, "saldoReceita", {
+					titulo: "Receita",
+					subtipo: "number",
+					atributos: {readonly: true},
+				}));
+				this.add(new CampoDOM(null, "saldoCustoDespesa", {
+					titulo: "Custo/Despesa",
+					subtipo: "number",
+					atributos: {readonly: true},
+				}));
+				this.add(new CampoDOM(null, "apenasRelatorio", {
+					titulo: "Relatório",
+					subtipo: "checkbox",
+					atributos: {title: "Indica que a apuração está sendo usada apenas para gerar relatório DRE"},
+				}));
+				let btBuscar = document.createElement("button");
+				btBuscar.textContent = "Buscar Lançamentos";
+				btBuscar.className = "btn btn-plus";
+				btBuscar.title = "Busca os valores de receita, custo e despesa para iniciar a apuração de resultado";
+				this.elemento.appendChild(btBuscar);
+				btBuscar.addEventListener("click", (e) => {
+					this.calcularLancamentos();
+				});
+				let btEfetuar = document.createElement("button");
+				btEfetuar.textContent = "Efetuar Apuração";
+				btEfetuar.className = "btn btn-plus";
+				this.elemento.appendChild(btEfetuar);
+				btEfetuar.addEventListener("click", (e) => {
+					this.efetuarLancamentosApuracao();
+				});
+			}
+			calcularLancamentos() {
+				let dataInicio = this.getComponente("periodo").inicio.getValor();
+				let dataFim = this.getComponente("periodo").fim.getValor();
+				if (dataInicio && dataFim) {
+					let sistema = this.getModuloSistema();
+					let lancamentos = sistema.lancamentos;
+					let listaContas = sistema.getListaContas();
+					lancamentos = lancamentos.filter(lc => lc.data >= dataInicio && lc.data <= dataFim);
+					
+					if (this.getComponente("apenasRelatorio").getValor()) {
+						lancamentos = lancamentos.filter(item => {
+							const debitosOk = item.debitos.every(d => d.conta !== "5");
+							const creditosOk = item.creditos.every(c => c.conta !== "5");
+							return debitosOk && creditosOk;
+						});
+					}
+					let lista = [];
+					for (let lanc of lancamentos) {
+						let debitos = lanc.debitos.map(itens => ({
+						  ...itens,
+						  tipo: "D",
+						  data: lanc.data
+						}));
+						lista.push(...debitos);
+						let creditos = lanc.creditos.map(itens => ({
+						  ...itens,
+						  tipo: "C",
+						  data: lanc.data
+						}));
+						lista.push(...creditos);
+					}
+					lancamentos = lista.filter(lc => lc.conta.startsWith("3") || lc.conta.startsWith("4") || lc.conta == "5");
+					lista = {};
+					for (let lanc of lancamentos) {
+						if (!lista[lanc.conta]) {
+							lista[lanc.conta] = 0;
+						}
+						if (lanc.conta[0] == '3') {
+							if (lanc.tipo == "C") {
+								lista[lanc.conta] += Number(lanc.valor);
+							} else {
+								lista[lanc.conta] -= Number(lanc.valor);
+							}
+						} else {
+							if (lanc.tipo == "D") {
+								lista[lanc.conta] += Number(lanc.valor);
+							} else {
+								lista[lanc.conta] -= Number(lanc.valor);
+							}
+						}
+					}
+					this.contasApuracao = [];
+					for (let conta in lista) {
+						if (conta !== "5") {
+							let saldo = lista[conta];
+							let aux = listaContas.find(lc => lc.codigo == conta);
+							let descricao = aux.descricao;
+							if (saldo) {
+								this.contasApuracao.push({conta: conta, descricao: descricao, saldo: saldo});
+							}
+						}
+					}
+					this.gerarRelatorio();
+					console.log("contasApuracao", this.contasApuracao);
+					let totalizacao = this.contasApuracao.reduce((acumulador, item) => {
+						const grupoPrincipal = item.conta[0]; 
+						if (!acumulador[grupoPrincipal]) {
+							acumulador[grupoPrincipal] = 0;
+						}
+						acumulador[grupoPrincipal] += item.saldo;
+						return acumulador;
+					}, {});
+					totalizacao["5"] = (totalizacao["3"] ?? 0) - (totalizacao["4"] ?? 0);
+					console.log("totalizacao", totalizacao);
+					this.getComponente("saldoReceita").setValor((totalizacao["3"] ?? 0).toFixed(2));
+					this.getComponente("saldoCustoDespesa").setValor((totalizacao["4"] ?? 0).toFixed(2));
+				} else {
+					new Modal().mostrar("Apuração de Resultado", "É necessário definir a data inicial e a data final");
+				}
+			}
+			efetuarLancamentosApuracao() {
+				if (this.getComponente("apenasRelatorio").getValor()) {
+					new Modal().mostrar("Apuração de Resultado", "Está configurado apenas para gerar relatório");
+					return;
+				}
+				if (!this.contasApuracao) {
+					new Modal().mostrar("Apuração de Resultado", "É necessário buscar os lançamentos");
+					return;
+				}
+				let contaLucroPrejuizo = this.pai.getComponente("contaLucroPrejuizo").getValor();
+				if (!contaLucroPrejuizo) {
+					new Modal().mostrar("Apuração de Resultado", "É necessário definir a conta de lucros/prejuízos");
+					return;
+				}
+				//Primeiro passo: mover para conta transitória
+				let sistema = this.getModuloSistema();
+				let dataFim = this.getComponente("periodo").fim.getValor();
+				let lancamento = {data: dataFim, descricao: "Apuração de Resultados", debitos: [], creditos: []}
+				for (let ca of this.contasApuracao) {
+					if (ca.conta[0] == "3") {
+						lancamento.debitos.push({conta: ca.conta, valor: ca.saldo});
+					} else if (ca.conta[0] == "4") {
+						lancamento.creditos.push({conta: ca.conta, valor: ca.saldo});
+					} else {
+						throw new Error("Conta inválida");
+					}
+				}
+				let saldoCustoDespesa = Number(this.getComponente("saldoCustoDespesa").getValor());
+				lancamento.debitos.push({conta: "5", valor: saldoCustoDespesa});
+				let saldoReceita = Number(this.getComponente("saldoReceita").getValor());;
+				lancamento.creditos.push({conta: "5", valor: saldoReceita});
+				lancamento.debitos.push({conta: "5", valor: saldoReceita - saldoCustoDespesa});
+				lancamento.creditos.push({conta: contaLucroPrejuizo, valor: saldoReceita - saldoCustoDespesa});
+				sistema.efetuarLancamento(lancamento);
+				new Modal().mostrar("Apuração de Resultado", "Apuração de Resultados realizada com sucesso!");
+				this.contasApuracao = [];
+				this.getComponente("saldoCustoDespesa").setValor(0);
+				this.getComponente("saldoReceita").setValor(0);
+			}
+			gerarRelatorio() {
+				let div = document.getElementById("DRE");
+				div.innerHTML = "";
+				let pre = document.createElement("pre");
+				div.appendChild(pre);
+				let contasDebito = this.contasApuracao.filter(c => c.conta.startsWith("4"));
+				let contasCredito = this.contasApuracao.filter(c => c.conta.startsWith("3"));
+				let tam = Math.max(contasDebito.length, contasCredito.length);
+				let largura = 120;
+				let largSaldo = 14;
+				let conteudo = "-".repeat((largura - 18) / 2) + " ARE (Transitória)" + "-".repeat((largura - 18) / 2) + "\n";
+				conteudo += "-".repeat(largura) + "\n";
+				conteudo += " Débitos " + " ".repeat((largura - 20)/ 2) + "|";
+				conteudo += " Créditos" + " ".repeat((largura - 20)/ 2 + 1);
+				conteudo += "\n";
+				let totalDebitos = 0;
+				let totalCreditos = 0;
+				for (let i = 0; i < tam; i++) {
+					let contaDebito = contasDebito[i];
+					let contaCredito = contasCredito[i];
+					if (contaDebito) {
+						let tamDesc = contaDebito.descricao.length;
+						conteudo += " " + contaDebito.descricao + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
+						let saldo = contaDebito.saldo.toFixed(2);
+						totalDebitos += contaDebito.saldo;
+						conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 4) + saldo + " |";
+					} else {
+						conteudo += " ".repeat(largura / 2);
+					}
+					if (contaCredito) {
+						let tamDesc = contaCredito.descricao.length;
+						conteudo += " " + contaCredito.descricao + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
+						let saldo = contaCredito.saldo.toFixed(2);
+						totalCreditos += contaCredito.saldo;
+						conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 2) + saldo;
+					} else {
+						conteudo += " ".repeat(largura / 2);
+					}
+					conteudo += "\n";
+				}
+				conteudo += "-".repeat(largura) + "\n";
+				conteudo += " Total de Débitos " + " ".repeat(largura / 2 - largSaldo - 18);
+				let saldo = totalDebitos.toFixed(2);
+				conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 4) + saldo + " |";
+				conteudo += " Total de Créditos" + " ".repeat(largura / 2 - largSaldo - 18);
+				saldo = totalCreditos.toFixed(2);
+				conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 2) + saldo;
+				conteudo += "\n";
+				conteudo += "-".repeat(largura) + "\n";
+				if (totalDebitos > totalCreditos) {
+					conteudo += " SALDO DEVEDOR (PREJUÍZO) " + " ".repeat(largura / 2 - largSaldo - 26);
+					saldo = (totalDebitos - totalCreditos).toFixed(2);
+					conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 4) + saldo;
+				} else {
+					conteudo += " ".repeat(largura / 2 - 1) + "| SALDO CREDOR (LUCRO)     " + " ".repeat(largura / 2 - largSaldo - 26);
+					saldo = (totalCreditos - totalDebitos).toFixed(2);
+					conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 2) + saldo;
+				}
+				conteudo += "\n";
+				pre.textContent = conteudo;
+			}
+			focar(ind) {
+				super.focar(ind);
+				this.aba.alternar("abaApuracao");
+			}
+		}
+		class ModuloSistemaContabil extends ModuloSistemaDOM {
+			constructor(elemento) {
+				super(elemento, "sistemaContabil", {titulo: "Sistema Contábil", qtdColunas: 10});
+				this.aba = new ControleAba(document.body);
+				this.add(new CNPJCPF(null, "identificacao", {
+					titulo: "Identificação",
+					spanV: 3,
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "nome", {
+					titulo: "Nome ou Razão Social", 
+					spanV: 4, 
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "ano", {
+					titulo: "Ano fiscal", 
+					subtipo: "number",
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoArquivo(null, "ultimoBalanco", {
+					titulo: "Balanço",
+					spanV: 2, 
+				}));
+				this.add(new Ativos(this.aba));
+				this.add(new Passivos(this.aba));
+				this.add(new Receitas(this.aba));
+				this.add(new Despesas(this.aba));
+				this.add(new LancamentoContabil(this.aba));
+				this.add(new ApuracaoResultado(this.aba));
+				let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
+				this.aba.aoAlterar = (aba) => {
+					if (aba == "abaResumo") {
+						this.mostrarResumo(document.getElementById("resumo"));
+					} else if (aba == "abaLancamento") {
+						let lancamento = this.getComponente("lancamentoContabil");
+						let listaContas = this.getListaContas();
+						lancamento.setListaContas(listaContas);
+					} else if (aba == "abaApuracaoResultado") {
+						let apuracaoResultado = this.getComponente("apuracaoResultado");
+						apuracaoResultado.preencherCombos();
+					}
+				}
+			}
+			setValor(valor) {
+				super.setValor(valor);
+				if (valor.lancamentos) {
+					this.lancamentos = valor.lancamentos;
+				}
+			}
+			limparSaldos(removerLancamentos) {
+				this.getComponente("ativos").zerarSaldo();
+				this.getComponente("passivos").zerarSaldo();
+				this.getComponente("receitas").zerarSaldo();
+				this.getComponente("despesas").zerarSaldo();
+				if (removerLancamentos) {
+					this.lancamentos = null;
+				}
+			}
+			refazerLancamentos() {
+				if (this.lancamentos) {
+					this.limparSaldos();
+					let lancamentos = this.lancamentos;
+					this.lancamentos = [];
+					for (let lancamento of lancamentos) {
+						this.efetuarLancamento(lancamento);
+					}
+				}
+			}
+			getValor() {
+				let valor = super.getValor();
+				if (this.lancamentos) {
+					valor.lancamentos = this.lancamentos;
+				}
+				return valor;
+			}
+			mostrarResumo(elemento, mostraTudo) {
+				elemento.innerHTML = "";
+				let tab = document.createElement("table");
+				tab.style.border = "1px solid";
+				elemento.appendChild(tab);
+				let lista = this.getListaContas();
+				let r = tab.insertRow();
+				r.insertCell().outerHTML = "<th>Código</th>";
+				r.insertCell().outerHTML = "<th>Descrição</th>";
+				r.insertCell().outerHTML = "<th>Valor</th>";
+				let formatador = new Intl.NumberFormat('pt-BR')
+				for (let item of lista) {
+					if (item.saldo || mostraTudo) {
+						let r = tab.insertRow();
+						let c = r.insertCell();
+						c.textContent = item.codigo;
+						c = r.insertCell();
+						c.textContent = item.descricao;
+						c = r.insertCell();
+						c.style.textAlign = "right";
+						if (item.saldo != undefined) {
+							c.textContent = formatador.format(Number(item.saldo));
+						}
+					}
+				}
+				if (!mostraTudo) {
+					let bt = document.createElement("button");
+					bt.textContent = "Mostrar todo plano de contas";
+					bt.addEventListener("click", (e) => {
+						this.mostrarResumo(elemento, true);
+					});
+					elemento.appendChild(bt);
+				}
+			}
+			#getListaContas(reg, prefixoCodigo) {
+				let lista = [];
+				let codigo = prefixoCodigo + reg.codigo;
+				lista.push({codigo: codigo, descricao: reg.descricao, saldo: reg.saldo, sintetica: reg.sintetica});
+				if (reg.sub) {
+					for (let sub of reg.sub) {
+						lista.push(...this.#getListaContas(sub, codigo + "."));
+					}
+				}
+				return lista;
+			}
+			getListaContas() {
+				let lista = [];
+				let conteudo = this.getValor();
+				lista.push(...this.#getListaContas(conteudo.sistemaContabil.ativos, ""));
+				lista.push(...this.#getListaContas(conteudo.sistemaContabil.passivos, ""));
+				lista.push(...this.#getListaContas(conteudo.sistemaContabil.receitas, ""));
+				lista.push(...this.#getListaContas(conteudo.sistemaContabil.despesas, ""));
+				return lista;
+			}
+			focar() {
+				super.focar();
+				this.aba.alternar("abaPrincipal");
+			}
+			validar() {
+				let lista = super.validar();
+				let ul = document.getElementById("mensagens");
+				ul.innerHTML = "";
+				let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
+				if (lista.length > 0) {
+					abaErros.hidden = false;
+					this.aba.alternar("abaErros");
+				} else {
+					abaErros.hidden = true;
+				}
+				for (let item of lista) {
+					let li = document.createElement("li");
+					let a = document.createElement("a");
+					a.href = "#";
+					a.title = "Clique para ir para o campo";
+					li.appendChild(a);
+					a.textContent = item.mensagem;
+					a.addEventListener('click', (e) => {
+						e.preventDefault()
+						for (let i = item.componentes.length - 1; i >= 0; i--) {
+							let c = item.componentes[i];
+							c.componente.focar(c.posicao);
+						}
+					});
+					ul.appendChild(li);
+				}
+				return lista;
+			}
+			localizaConta(conta) {
+				let auxContas = [];
+				auxContas.push(this.getComponente("ativos"));
+				auxContas.push(this.getComponente("passivos"));
+				auxContas.push(this.getComponente("receitas"));
+				auxContas.push(this.getComponente("despesas"));
+				auxContas.push(this.getComponente("apuracaoResultado"));
+				let arrayContas = conta.split(".");
+				let saida = null;
+				let cont = 0;
+				for (let c of arrayContas) {
+					cont += 1;
+					for (let comp of auxContas) {
+						if (c == comp.getComponente("codigo")?.getValor()) {
+							//Se for o último da pesquisa
+							if (cont == arrayContas.length) {
+								saida = comp;
+							} else {
+								let sub = comp.getComponente("sub");
+								if (sub) {
+									auxContas = sub.componentes;
+								}
+							}
+							break;
+						}
+					}
+				}
+				return saida;
+			}
+			efetuarLancamento(lancamento) {
+				console.log("efetuarLancamento", lancamento);
+				let data = lancamento.data;
+				if (new Date(data).getTime() > new Date().getTime()) {
+					throw new Error("Data não pode ser maior que a data de hoje");
+				}
+				let anoFiscal = Number(this.getComponente("ano").getValor());
+				if (new Date(data).getFullYear() != anoFiscal) {
+					throw new Error ("O ano do lançamento deve ser igual ao ano fiscal registrado");
+				}
+				const totalDebito = lancamento.debitos.reduce((sum, item) => sum + Number(item.valor), 0);
+				const totalCredito = lancamento.creditos.reduce((sum, item) => sum + Number(item.valor), 0);
+				if (totalDebito.toFixed(2) != totalCredito.toFixed(2)) {
+					throw new Error("Total de débitos e créditos não batem iguais");
+				}
+				lancamento.debitos.forEach(item => {
+					let conta = this.localizaConta(item.conta);
+					if (conta) {
+						let valor = Number(item.valor);
+						conta.alterarSaldo(valor, "D");
+					} else {
+						throw new Error("Conta '" + item.conta + "' não encontrada");
+					}
+				});
+				lancamento.creditos.forEach(item => {
+					let conta = this.localizaConta(item.conta);
+					if (conta) {
+						let valor = Number(item.valor);
+						conta.alterarSaldo(valor, "C");
+					} else {
+						throw new Error("Conta '" + item.conta + "' não encontrada");
+					}
+				});
+				if (!this.lancamentos) {
+					this.lancamentos = [];
+				}
+				lancamento.timestamp = Date.now();
+				this.lancamentos.push(lancamento);
+			}
+			getListaQuantidade(conta) {
+				let lancamentos = this.getLancamentos(conta);
+				lancamentos.sort((a, b) => a.lancamento.data.localeCompare(b.lancamento.data));
+				let lancamentosDebito = lancamentos.filter(a => a.tipo == "D");
+				let lancamentosCredito = lancamentos.filter(a => a.tipo == "C");
+				lancamentosDebito = lancamentosDebito.map(reg => {
+					return {
+						...reg,
+						valorUnitario: Number(reg.valor) / Number(reg.lancamento.quantidade),
+						quantidade: Number(reg.lancamento.quantidade),
+						valor: Number(reg.valor),
+						qtdUsada: 0
+					};
+				});
+				//Ajusta a quantidade usada dos lancamentosDebito a partir dos lancamentosCredito
+				for (let lc of lancamentosCredito) {
+					lc.quantidade = Number(lc.lancamento.quantidade);
+					for (let ld of lancamentosDebito) {
+						if (ld.quantidade >= lc.quantidade) {
+							ld.qtdUsada += lc.quantidade;
+							ld.quantidade -= lc.quantidade;
+							lc.quantidade = 0;
+						} else {
+							ld.qtdUsada += ld.quantidade;
+							lc.quantidade -= ld.quantidade;
+							ld.quantidade = 0;
+						}
+					}
+				}
+				lancamentosDebito = lancamentosDebito.map(reg => {
+					return {
+						...reg,
+						quantidade: Number(reg.lancamento.quantidade),
+						qtdDisponivel: reg.quantidade,
+					};
+				});
+				return lancamentosDebito.filter(a => a.qtdDisponivel > 0);
+			}
+			calculoFIFO(conta, quantidade) {
+				let lancamentosDebito = this.getListaQuantidade(conta)
+				let saida = 0;
+				let qtdRestante = Number(quantidade);
+				for (let l of lancamentosDebito) {
+					if (qtdRestante <= l.qtdDisponivel) {
+						l.qtdDisponivel -= qtdRestante;
+						saida += qtdRestante * l.valorUnitario;
+						qtdRestante = 0;
+						break;
+					} else {
+						qtdRestante -= l.qtdDisponivel;
+						saida += l.qtdDisponivel * l.valorUnitario;;
+						l.qtdDisponivel = 0;
+					}
+				}
+				if (qtdRestante > 0) {
+					throw new Error("A quantidade ultrapassou a quantidade disponível");
+				}
+				return saida;
+			}
+			getLancamentos(conta) {
+				let saida = [];
+				if (!this.lancamentos) {
+					return saida;
+				}
+				for (let lanc of this.lancamentos) {
+					for (let deb of lanc.debitos) {
+						if (deb.conta == conta) {
+							let reg = {
+								conta: deb.conta,
+								valor: deb.valor,
+								tipo: "D",
+								lancamento: lanc
+							}
+							saida.push(reg);
+						}
+					}
+					for (let cred of lanc.creditos) {
+						if (cred.conta == conta) {
+							let reg = {
+								conta: cred.conta,
+								valor: cred.valor,
+								tipo: "C",
+								lancamento: lanc
+							}
+							saida.push(reg);
+						}
+					}
+				}
+				return saida;
+			}
+		}
+		class ConjuntoTipoLancamentoContabil extends ConjuntoDOM {
+			constructor(elemento, nome, obj) {
+				obj.somentePrimeiroLabel = true;
+				obj.qtdColunas = 1;
+				obj.spanV = 10;
+				obj.regras = {obrigatorio: true, campoChave: "conta"};
+				super(elemento, nome, obj);
+			}
+			novo() {
+				let n = super.novo();
+				if (this.pai && this.pai.pai) {
+					let conta = n.getComponente("conta");
+					let listaContas = this.pai.pai.listaContas;
+					conta.setOpcoes(listaContas);
+				}
+				return n;
+			}
+			atualizarCombos() {
+				for (let comp of this.getListaComponentes()) {
+					let conta = comp.getComponente("conta");
+					let listaContas = this.pai.pai.listaContas;
+					conta.setOpcoes(listaContas);
+				}
+			}
+		}
+		class TipoLancamentoContabil extends FichasDOM {
+			constructor(aba) {
+				let elemento = document.getElementById("tipoLancamentoContabil");
+				super(elemento, "tipoLancamentoContabil", {titulo: "Tipos de Lançamentos", qtdColunas: 10, spanV: 2, ordem: "descricao"});
+				this.aba = aba;
+				this.add(new CampoDOM(null, "descricao", {
+					titulo: "Descrição", spanV: 10, regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "observacoes", {
+					tipo: "textarea",
+					atributos: {rows: 4},
+					titulo: "Observações", spanV: 10,
+				}));
+				let listaDebitos = new ConjuntoTipoLancamentoContabil(null, "debitos", {titulo: "Débitos"});
+				listaDebitos.add(new ComboFiltroDOM(null, "conta", {
+					titulo: "Conta", 
+				}));
+				this.add(listaDebitos);
+				let listaCreditos = new ConjuntoTipoLancamentoContabil(null, "creditos", {titulo: "Créditos"});
+				listaCreditos.add(new ComboFiltroDOM(null, "conta", {
+					titulo: "Conta", 
+				}));
+				this.add(listaCreditos);
+			}
+			focar() {
+				super.focar();
+				this.aba.alternar("abaTipoLancamentoContabil");
+			}
+			atualizarCombos() {
+				this.getComponente("debitos").atualizarCombos();
+				this.getComponente("creditos").atualizarCombos();
+			}
+		}
+		class ContasLancamentoContabil extends ConjuntoDOM {
+			constructor(nome, titulo) {
+				super(null, nome, {
+					titulo: titulo, 
+					qtdColunas: 10, 
+					spanV: 10, 
+					regras: {obrigatorio: true, campoChave: "conta"}, 
+					somentePrimeiroLabel: true
+				});
+				this.add(new CampoDOM(null, "conta", {
+					titulo: "Conta", 
+					tipo: "select",
+					spanV: 7,
+					regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "valor", {
+					titulo: "Valor", 
+					subtipo: "number", 
+					spanV: 3,
+					regras: {obrigatorio: true}
+				}));
+			}
+			preencherOpcoesConta(conta, listaContas, filtro) {
+				if (filtro && filtro[this.nome]) {
+					filtro = filtro[this.nome];
+					const opcoesFiltradas = listaContas.filter(opcao => {
+						if (opcao.value === "") return true;
+						return filtro.some(prefixo => opcao.value.startsWith(prefixo.conta));
+					});
+					conta.setOpcoes(opcoesFiltradas);
+				} else {
+					conta.setOpcoes(listaContas);
+				}
+			}
+			filtraListaContas(listaContas, filtro) {
+				for (let comp of this.getListaComponentes()) {
+					let conta = comp.getComponente("conta");
+					let valorAnt = conta.getValor();
+					this.preencherOpcoesConta(conta, listaContas, filtro);
+					conta.setValor(valorAnt);
+				}
+			}
+			aposIncluir(item) {
+				let conta = item.getComponente("conta");
+				let tipo = this.pai.getComponente("tipo");
+				let filtro = this.pai.filtro[tipo.campo.value];
+				let listaContas = this.pai.pai.listaContasNaoSinteticas;
+				this.preencherOpcoesConta(conta, listaContas, filtro);
+			}
+		}
+		class EfetuarLancamentoContabil extends ObjetoDOM {
+			constructor(aba) {
+				let elemento = document.getElementById("efetuarLancamento");
+				super(elemento, "efetuarLancamento", {titulo: "Lançamento Contábil", qtdColunas: 10});
+				this.filtro = {};
+			}
+			getTipos() {
+				let saida =[];
+				for (let key in this.filtro) {
+					saida.push({text: key});
+				}
+				saida.push({text: "Extorno"});
+				return saida;
+			}
+			init() {
+				this.add(new CampoDOM(null, "data", {
+					titulo: "Data", spanV: 2, subtipo: "date", regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "descricao", {
+					titulo: "Descrição", spanV: 8, regras: {obrigatorio: true}
+				}));
+				this.add(new CampoDOM(null, "quantidade", {
+					titulo: "Quantidade", spanV: 2, subtipo: "number"
+				}));
+				let tipo = new ComboFiltroDOM(null, "tipo", {
+					titulo: "Tipo", 
+					opcoes: this.getTipos(),
+					spanV: 8, 
+				});
+				this.add(tipo);
+				let debitos = new ContasLancamentoContabil("debitos", "Débitos");
+				this.add(debitos);
+				let creditos = new ContasLancamentoContabil("creditos", "Créditos")
+				this.add(creditos);
+				tipo.campo.addEventListener("change", (e) => {
+					let filtro = this.filtro[tipo.getValor()];
+					debitos.filtraListaContas(this.pai.listaContasNaoSinteticas, filtro);
+					creditos.filtraListaContas(this.pai.listaContasNaoSinteticas, filtro);
+				});
+
+				let bt = document.createElement("button");
+				bt.textContent = "Efetuar";
+				bt.addEventListener("click", (e) => {
+					if (this.vazio()) {
+						new Modal().mostrar("Lançamento", "Não há informação de lançamento");
+					} else {
+						let lista = this.validar();
+						if (lista.length == 0) {
+							this.getModuloSistema().efetuarLancamento(this.getValor().efetuarLancamento);
+							new Modal().mostrar("Lançamento", "Lançamento efetuado com sucesso");
+							this.setSomenteLeitura(false);
+							this.limpar();
+						} else {
+							new Modal().mostrar("Lançamento", "Existem erros no lançamento");
+						}
+					}
+				});
+				this.elemento.appendChild(bt);
+				
+				bt = document.createElement("button");
+				bt.id = "btBuscarValorQuantidade";
+				bt.hidden = true;
+				bt.textContent = "Obter valor";
+				bt.title = "Tenta obter valor a partir de informações dos lançamentos nas contas";
+				bt.addEventListener("click", (e) => {
+					let conteudo = this.getValor().efetuarLancamento;
+					if (!conteudo.quantidade) {
+						new Modal().mostrar("Obter valores", "Para tenta obter valores, é necessário preencher a quantidade");
+						return;
+					}
+					let contasQuantidade = this.pai.getComponente("contasRequeremQuantidade").getValor();
+					if (conteudo.creditos) {
+						const contasEncontradas = conteudo.creditos.filter(alvo => 
+							contasQuantidade.some(filtro => alvo.conta.startsWith(filtro.conta))
+						);
+						for (let conta of contasEncontradas) {
+							let valor = this.getModuloSistema().calculoFIFO(conta.conta, conteudo.quantidade);
+							let cred = this.getComponente("creditos");
+							for (let reg of cred.getListaComponentes()) {
+								if (reg.getComponente("conta").getValor() == conta.conta) {
+									reg.getComponente("valor").setValor(valor.toFixed(2));
+								}
+							}
+							console.log("lançamentos", conta, valor);
+						}
+					}
+				});
+				this.elemento.appendChild(bt);
+				
+				bt = document.createElement("button");
+				bt.id = "btBuscarValorDepreciacao";
+				bt.hidden = true;
+				bt.textContent = "Calcula";
+				bt.title = "Calcula valor a partir de informações dos lançamentos nas contas e percentuais de depreciação";
+				bt.addEventListener("click", (e) => {
+					let conteudo = this.getValor().efetuarLancamento;
+					let contasDepreciacao = this.pai.getComponente("contasDepreciacao").getValor();
+					if (conteudo.creditos) {
+						let contasEncontradas = contasDepreciacao.filter(alvo => 
+							conteudo.creditos.some(filtro => alvo.contaValor == filtro.conta)
+						);
+						for (let conta of contasEncontradas) {
+							let contaOrigem = this.getModuloSistema().localizaConta(conta.contaOrigem);
+							let valor = Number(contaOrigem.getComponente("saldo").getValor());
+							let perc = Number(conta.taxa) / 100.0;
+							valor *= perc;
+							let cred = this.getComponente("creditos");
+							for (let reg of cred.getListaComponentes()) {
+								if (reg.getComponente("conta").getValor() == conta.contaValor) {
+									reg.getComponente("valor").setValor(valor.toFixed(2));
+								}
+							}
+						}
+					}
+				});
+				this.elemento.appendChild(bt);
+				
+				bt = document.createElement("button");
+				bt.id = "btCalcularSimples";
+				bt.hidden = true;
+				bt.textContent = "Simples";
+				bt.title = "Calcula valor a a pagar do simples";
+				bt.addEventListener("click", (e) => {
+					let conteudo = this.getValor().efetuarLancamento;
+					let simplesNacional = this.pai.getComponente("simplesNacional").getValor().simplesNacional;
+					if (conteudo.creditos) {
+						if (conteudo.creditos.some(reg => simplesNacional.contaSimples == reg.conta)) {
+							let contaReceita = this.getModuloSistema().localizaConta(simplesNacional.contaReceita);
+							let valor = Number(contaReceita.getComponente("saldo").getValor());
+							let perc = Number(simplesNacional.aliquotaEfetiva) / 100.0;
+							valor *= perc;
+							let cred = this.getComponente("creditos");
+							for (let reg of cred.getListaComponentes()) {
+								if (reg.getComponente("conta").getValor() == simplesNacional.contaSimples) {
+									reg.getComponente("valor").setValor(valor.toFixed(2));
+								}
+							}
+						}
+					}
+				});
+				this.elemento.appendChild(bt);
+
+				bt = document.createElement("button");
+				bt.textContent = "Limpar";
+				bt.addEventListener("click", (e) => {
+					this.setSomenteLeitura(false);
+					this.limpar();
+				});
+				this.elemento.appendChild(bt);
+			}
+			atualizarCombos() {
+				let tipos = this.pai.getComponente("tipoLancamentoContabil").getValor();
+				this.filtro = {};
+				for (let t of tipos) {
+					this.filtro[t.descricao] = t;
+				}
+				let tipo = this.getComponente("tipo");
+				tipo.setOpcoes(this.getTipos());
+				let filtro = this.filtro[tipo.getValor()];
+				this.getComponente("debitos").filtraListaContas(this.pai.listaContasNaoSinteticas, filtro);
+				this.getComponente("creditos").filtraListaContas(this.pai.listaContasNaoSinteticas, filtro);
+			}
+			setValor(valor) {
+				this.atualizarCombos();
+				super.setValor(valor);
+			}
+			aoModificar(ultimo) {
+				super.aoModificar(this);
+				if (ultimo.nome == "creditos") {
+					//Verifica se mostra o botão de buscar valores com quantidade
+					let creditos = ultimo.getValor();
+
+					let contasQuantidade = this.pai.getComponente("contasRequeremQuantidade").getValor();
+					let achou = false;
+					for (let credito of creditos) {
+						if (contasQuantidade.some(filtro => credito.conta.startsWith(filtro.conta))) {
+							achou = true;
+						}
+					}
+					let bt = document.getElementById("btBuscarValorQuantidade");
+					if (achou) {
+						bt.hidden = false;
+					} else {
+						bt.hidden = true;
+					}
+					//Verifica se mostra botão que calcula depreciação
+					let contasDepreciacao = this.pai.getComponente("contasDepreciacao").getValor();
+					achou = false;
+					for (let credito of creditos) {
+						if (contasDepreciacao.some(filtro => credito.conta.startsWith(filtro.contaValor))) {
+							achou = true;
+						}
+					}
+					bt = document.getElementById("btBuscarValorDepreciacao");
+					if (achou) {
+						bt.hidden = false;
+					} else {
+						bt.hidden = true;
+					}
+					//Verifica se mostra o botão para calcular simples nacional
+					let simplesNacional = this.pai.getComponente("simplesNacional").getValor().simplesNacional;
+					bt = document.getElementById("btCalcularSimples");
+					if (creditos.some(reg => simplesNacional.contaSimples == reg.conta)) {
+						bt.hidden = false;
+					} else {
+						bt.hidden = true;
+					}
+				}
+			}
+			validar() {
+				let lista = super.validar();
+				if (this.vazio()) {
+					return lista;
+				}
+				let conteudo = this.getValor().efetuarLancamento;
+				if (lista.length == 0) {
+					let data = this.getComponente("data");
+					if (new Date(data.getValor()).getTime() > new Date().getTime()) {
+						let item = {
+							mensagem: "A data do lançamento não pode ser futura",
+							componentes: [{componente: data}, {componente: this}],
+						}
+						lista.push(item);
+					}
+					let anoFiscal = Number(this.getModuloSistema().getComponente("ano").getValor());
+					if (new Date(data.getValor()).getFullYear() != anoFiscal) {
+						let item = {
+							mensagem: "O ano do lançamento deve ser igual ao ano fiscal registrado",
+							componentes: [{componente: data}, {componente: this}],
+						}
+						lista.push(item);
+					}
+					let contasQuantidade = this.pai.getComponente("contasRequeremQuantidade").getValor();
+					let temAlgumPrefixo = conteudo.debitos.some(alvo => 
+						contasQuantidade.some(filtro => alvo.conta.startsWith(filtro.conta))
+					);
+					temAlgumPrefixo = temAlgumPrefixo || conteudo.creditos.some(alvo => 
+						contasQuantidade.some(filtro => alvo.conta.startsWith(filtro.conta))
+					);
+					if (temAlgumPrefixo) {
+						let qtd = this.getComponente("quantidade");
+						if (!qtd.getValor()) {
+							let item = {
+								mensagem: "É necessário especificar a quantidade",
+								componentes: [{componente: this}, {componente: qtd}],
+							}
+							lista.push(item);
+						}
+					}
+					const totalDebito = conteudo.debitos.reduce((sum, item) => sum + Number(item.valor), 0);
+					const totalCredito = conteudo.creditos.reduce((sum, item) => sum + Number(item.valor), 0);
+					if (totalDebito.toFixed(2) != totalCredito.toFixed(2)) {
+						let item = {
+							mensagem: "Total de débitos e créditos não batem iguais",
+							componentes: [{componente: this}],
+						}
+						lista.push(item);
+					}
+				}
+				return lista;
+			}
+			focar() {
+				super.focar();
+				this.pai.abaLancamentos.alternar("abaEfetuarLancamento");
+			}
+		}
+		class ContasRequeremQuantidade extends ConjuntoDOM {
+			constructor() {
+				super(null, "contasRequeremQuantidade", {
+					titulo: "Controle de Quantidade",
+					somentePrimeiroLabel: true,
+					qtdColunas: 1
+				});
+				this.add(new ComboFiltroDOM(null, "conta", {
+					titulo: "Conta", 
+				}));
+			}
+			novo() {
+				let n = super.novo();
+				if (this.pai) {
+					let conta = n.getComponente("conta");
+					let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
+					conta.setOpcoes(listaContas);
+				}
+				return n;
+			}
+			atualizarCombos() {
+				let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
+				for (let comp of this.getListaComponentes()) {
+					let conta = comp.getComponente("conta");
+					conta.setOpcoes(listaContas);
+				}
+			}
+		}
+		class ContasDepreciacao extends FichasDOM {
+			constructor() {
+				super(null, "contasDepreciacao", {
+					titulo: "Cálculo de Depreciação",
+					qtdColunas: 10
+				});
+				this.add(new ComboFiltroDOM(null, "contaOrigem", {
+					titulo: "Conta para depreciação", 
+					regras: {obrigatorio: true},
+					spanV: 7,
+				}));
+				this.add(new CampoDOM(null, "tipo", {
+					titulo: "Tipo", 
+					tipo: "select",
+					regras: {obrigatorio: true},
+					opcoes: [{text: "Mensal", value: "M"}, {text: "Semestral", value: "S"}, {text: "Anual", value: "S"}],
+					spanV: 3,
+				}));
+				this.add(new ComboFiltroDOM(null, "contaValor", {
+					titulo: "Conta de depreciação", 
+					regras: {obrigatorio: true},
+					spanV: 7,
+				}));
+				this.add(new CampoDOM(null, "taxa", {
+					titulo: "Taxa (%)", 
+					subtipo: "number",
+					regras: {obrigatorio: true},
+					spanV: 3,
+				}));
+			}
+			atualizarCombos() {
+				let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
+				this.getComponente("contaOrigem").setOpcoes(listaContas);
+				this.getComponente("contaValor").setOpcoes(listaContas);
+			}
+		}
+		class SimplesNacional extends ObjetoDOM {
+			constructor() {
+				super(null, "simplesNacional", {
+					titulo: "Simples Nacional",
+					qtdColunas: 4
+				});
+				this.add(new CampoDOM(null, "RBT12", {
+					titulo: "RBT12", 
+					atributos: {title: "Faturamento bruto acumulado dos últimos 12 meses"},
+					regras: {obrigatorio: true},
+					subtipo: "number",
+				}));
+				this.add(new CampoDOM(null, "aliquotaNominal", {
+					titulo: "Alíquota Nominal (%)", 
+					regras: {obrigatorio: true},
+					subtipo: "number",
+				}));
+				this.add(new CampoDOM(null, "parcelaDeduzir", {
+					titulo: "Parcela a Deduzir", 
+					subtipo: "number",
+				}));
+				this.add(new CampoDOM(null, "aliquotaEfetiva", {
+					titulo: "Alíquota Efetiva (%)", 
+					subtipo: "number",
+					atributos: {readonly: true},
+				}));
+				this.add(new ComboFiltroDOM(null, "contaReceita", {
+					titulo: "Conta de Receita para Cálculo", 
+					regras: {obrigatorio: true},
+					spanV: 2
+				}));
+				this.add(new ComboFiltroDOM(null, "contaSimples", {
+					titulo: "Conta Simples Nacional a Recolher", 
+					regras: {obrigatorio: true},
+					spanV: 2
+				}));
+			}
+			atualizarCombos() {
+				let listaContas = this.pai.listaContas;
+				this.getComponente("contaReceita").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.")));
+				listaContas = this.pai.listaContasNaoSinteticas;
+				this.getComponente("contaSimples").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
+			}
+			aoModificar(item) {
+				super.aoModificar(this);
+				let RBT12 = this.getComponente("RBT12").getValor();
+				if (!RBT12) {
+					return;
+				} else {
+					RBT12 = Number(RBT12);
+				}
+				let aliquotaNominal = this.getComponente("aliquotaNominal").getValor();
+				if (!aliquotaNominal) {
+					return;
+				} else {
+					aliquotaNominal = Number(aliquotaNominal) / 100.0;
+				}
+				let parcelaDeduzir = this.getComponente("parcelaDeduzir").getValor();
+				if (!parcelaDeduzir) {
+					parcelaDeduzir = 0;
+				} else {
+					parcelaDeduzir = Number(parcelaDeduzir);
+				}
+				let aliquotaEfetiva = (RBT12 * aliquotaNominal - parcelaDeduzir) / RBT12;
+				aliquotaEfetiva *= 100;
+				this.getComponente("aliquotaEfetiva").setValor(aliquotaEfetiva.toFixed(2));
+			}
+		}
+		class VisualizarLancamentos extends ObjetoDOM {
+			constructor(efetuarLancamentoContabil) {
+				let elemento = document.getElementById("visualizarLancamentos");
+				super(elemento, "visualizarLancamentos", {titulo: "Filtro", qtdColunas: 5});
+				this.efetuarLancamentoContabil = efetuarLancamentoContabil;
+				this.conta = new ComboFiltroDOM(null, "conta", {
+					titulo: "Conta", 
+					spanV: 3
+				});
+				this.add(this.conta);
+				this.debitoCredito = new CampoDOM(null, "debitoCredito", {
+					titulo: "Tipo", 
+					tipo: "select",
+					opcoes: [{text: "Débito", value: "D"},{text: "Crédito", value: "C"}]
+				});
+				this.add(this.debitoCredito);
+				this.data = new CampoDOM(null, "data", {
+					titulo: "Data", 
+					subtipo: "date",
+				});
+				this.add(this.data);
+			}
+			init() {
+				let bt = document.createElement("button");
+				bt.textContent = "Mostrar";
+				bt.addEventListener("click", (e) => {
+					let listaLancamentos = document.getElementById("listaLancamentos");
+					listaLancamentos.innerHTML = "";
+					let sistema = this.getModuloSistema();
+					if (!sistema.lancamentos) {
+						new Modal().mostrar("Visualizar Lançamentos", "Não há lançamentos");
+						return;
+					}
+					let conta = this.conta.getValor();
+					let debitoCredito = this.debitoCredito.getValor();
+					let data = this.data.getValor();
+					let lancamentos = sistema.lancamentos.filter(reg => {
+						let sai = true;
+						if (conta) {
+							if (debitoCredito == "D") {
+								if (!reg.debitos.some(d => d.conta.startsWith(conta))) {
+									sai = false;
+								}
+							} else if (debitoCredito == "C") {
+								if (!reg.creditos.some(c => c.conta.startsWith(conta))) {
+									sai = false;
+								}
+							} else {
+								if (!reg.debitos.some(d => d.conta.startsWith(conta)) && !reg.creditos.some(c => c.conta.startsWith(conta))) {
+									sai = false;
+								}
+							}
+						}
+						if (data && reg.data != data) {
+							sai = false;
+						}
+						return sai;
+					});
+					lancamentos.sort((a, b) => {
+						return b.data.localeCompare(a.data) || b.timestamp - a.timestamp;
+					});
+					for (let dados of lancamentos) {
+						let f = document.createElement("fieldset");
+						listaLancamentos.appendChild(f);
+						let data = document.createElement("legend");
+						data.textContent = dados.data;
+						f.appendChild(data);
+						let div = document.createElement("div");
+						div.style.display = "grid";
+						div.style.gridTemplateColumns = "repeat(6, 1fr)";
+						div.style.gap = "5px";
+						div.style.marginBottom = "3px";
+						f.appendChild(div);
+						let label = document.createElement("label");
+						label.innerHTML = "<b>Descrição</b><br>" + dados.descricao;
+						label.style.gridColumn = "span 3"
+						div.appendChild(label);
+						if (dados.quantidade) {
+							label = document.createElement("label");
+							label.innerHTML = "<b>Quantidade</b><br>" + dados.quantidade;
+							div.appendChild(label);
+						}
+						if (dados.tipo) {
+							label = document.createElement("label");
+							label.innerHTML = "<b>Tipo</b><br>" + dados.tipo;
+							label.style.gridColumn = "span 2"
+							div.appendChild(label);
+						}
+						label = document.createElement("label");
+						label.innerHTML = "<b>Débitos</b>";
+						label.style.gridColumn = "span 6"
+						div.appendChild(label);
+						let tab = document.createElement("table");
+						tab.style.gridColumn = "span 6"
+						tab.style.border = "1px solid";
+						let r = tab.insertRow();
+						let c = r.insertCell();
+						c.innerHTML = "<b>Código</b>";
+						c = r.insertCell();
+						c.innerHTML = "<b>Descrição</b>";
+						c = r.insertCell();
+						c.innerHTML = "<b>Valor</b>";
+						for (let item of dados.debitos) {
+							r = tab.insertRow();
+							c = r.insertCell();
+							c.style.width = "15%";
+							c.textContent = item.conta;
+							let conta = sistema.localizaConta(item.conta);
+							let descricao = conta.getComponente("descricao");
+							c = r.insertCell();
+							c.style.width = "70%";
+							c.textContent = descricao.getValor()
+							c = r.insertCell();
+							c.textContent = item.valor;
+						}
+						div.appendChild(tab);
+						label = document.createElement("label");
+						label.innerHTML = "<b>Créditos</b>";
+						label.style.gridColumn = "span 6"
+						div.appendChild(label);
+						tab = document.createElement("table");
+						tab.style.gridColumn = "span 6"
+						tab.style.border = "1px solid";
+						r = tab.insertRow();
+						c = r.insertCell();
+						c.innerHTML = "<b>Código</b>";
+						c = r.insertCell();
+						c.innerHTML = "<b>Descrição</b>";
+						c = r.insertCell();
+						c.innerHTML = "<b>Valor</b>";
+						for (let item of dados.creditos) {
+							r = tab.insertRow();
+							c = r.insertCell();
+							c.style.width = "15%";
+							c.textContent = item.conta;
+							let conta = sistema.localizaConta(item.conta);
+							let descricao = conta.getComponente("descricao");
+							c = r.insertCell();
+							c.style.width = "70%";
+							c.textContent = descricao.getValor()
+							c = r.insertCell();
+							c.textContent = item.valor;
+						}
+						div.appendChild(tab);
+						let bt = document.createElement("button");
+						bt.textContent = "refazer";
+						bt.addEventListener("click", (e) => {
+							this.efetuarLancamentoContabil.getComponente("descricao").setValor(dados.descricao);
+							this.efetuarLancamentoContabil.getComponente("tipo").setValor(dados.tipo);
+							this.efetuarLancamentoContabil.getComponente("quantidade").setValor(dados.quantidade);
+							let debitos = this.efetuarLancamentoContabil.getComponente("debitos");
+							this.efetuarLancamentoContabil.getComponente("debitos").setValor(dados.debitos);
+							this.efetuarLancamentoContabil.getComponente("creditos").setValor(dados.creditos);
+							this.efetuarLancamentoContabil.focar();
+						});
+						div.appendChild(bt);
+						bt = document.createElement("button");
+						bt.textContent = "estornar";
+						bt.addEventListener("click", (e) => {
+							this.efetuarLancamentoContabil.getComponente("data").setValor(dados.data);
+							this.efetuarLancamentoContabil.getComponente("descricao").setValor(dados.descricao);
+							this.efetuarLancamentoContabil.getComponente("tipo").setValor("Extorno");
+							this.efetuarLancamentoContabil.getComponente("quantidade").setValor(dados.quantidade);
+							let debitos = this.efetuarLancamentoContabil.getComponente("debitos");
+							this.efetuarLancamentoContabil.getComponente("debitos").setValor(dados.creditos);
+							this.efetuarLancamentoContabil.getComponente("creditos").setValor(dados.debitos);
+							this.efetuarLancamentoContabil.setSomenteLeitura(true);
+							this.efetuarLancamentoContabil.focar();
+						});
+						div.appendChild(bt);
+					}
+				});
+				this.elemento.appendChild(bt);
+			}
+			preencherCombos() {
+				let listaContas = this.pai.listaContas;
+				listaContas.push({value: "5", text: "5 - Apuração de Resultados (AER)"});
+				this.conta.setOpcoes(listaContas);
+			}
+		}
+		class LancamentoContabil extends ObjetoDOM {
+			constructor(aba) {
+				let elemento = document.getElementById("lancamentos");
+				super(elemento, "lancamentoContabil");
+				this.aba = aba;
+				this.abaLancamentos = new ControleAba(document.getElementById("abaLancamento"));
+				this.listaContas = [];
+				this.listaContasNaoSinteticas = [];
+			}
+			init() {
+				let tipoLancamentoContabil = new TipoLancamentoContabil(this.abaLancamentos);
+				this.add(tipoLancamentoContabil);
+				let efetuarLancamentoContabil = new EfetuarLancamentoContabil(this.abaLancamentos);
+				this.add(efetuarLancamentoContabil);
+				let visualizarLancamentos = new VisualizarLancamentos(efetuarLancamentoContabil);
+				this.add(visualizarLancamentos);
+				let contasQuantidade = new ContasRequeremQuantidade();
+				this.add(contasQuantidade);
+				let contasDepreciacao = new ContasDepreciacao();
+				this.add(contasDepreciacao);
+				let simplesNacional = new SimplesNacional();
+				this.add(simplesNacional);
+				let sistema = this.getModuloSistema();
+				this.abaLancamentos.aoAlterar = (aba) => {
+					if (aba == "abaEfetuarLancamento") {
+						efetuarLancamentoContabil.atualizarCombos();
+					} else if (aba == "abaTipoLancamentoContabil") {
+						tipoLancamentoContabil.atualizarCombos();
+					} else if (aba == "abaDepreciacao") {
+						let e = document.getElementById("depreciacoes");
+						e.innerHTML = "";
+						let tab = document.createElement("table");
+						tab.style.border = "1px solid";
+						let r = tab.insertRow();
+						r.insertCell().innerHTML = "<b>Código</b>";
+						r.insertCell().innerHTML = "<b>Descrição</b>";
+						r.insertCell().innerHTML = "<b>Saldo</b>";
+						r.insertCell().innerHTML = "<b>Periodiciade</b>";
+						r.insertCell().innerHTML = "<b>Taxa (%)</b>";
+						r.insertCell().innerHTML = "<b>Depreciação</b>";
+						r.insertCell().innerHTML = "<b>Ultima depreciação</b>";
+						e.appendChild(tab);
+						let lista = contasDepreciacao.getValor();
+						let listaContas = sistema.getListaContas();
+						for (let reg of lista) {
+							let contaOrigem = listaContas.find(lc => lc.codigo == reg.contaOrigem);
+							let contaValor = listaContas.find(lc => lc.codigo == reg.contaValor);
+							let lancamentosDepreciacao = sistema.getLancamentos(reg.contaValor);
+							let maiorLancamento = "";
+							if (lancamentosDepreciacao.length > 0) {
+								let lanc = lancamentosDepreciacao.reduce((maior, atual) => {
+									return atual.lancamento.data > maior.lancamento.data ? atual : maior;
+								});
+								maiorLancamento = lanc.lancamento.data;
+							}
+							let r = tab.insertRow();
+							r.insertCell().textContent = contaOrigem.codigo;
+							r.insertCell().textContent = contaOrigem.descricao;
+							r.insertCell().textContent = contaOrigem.saldo;
+							r.insertCell().textContent = reg.tipo;
+							r.insertCell().textContent = reg.taxa;
+							r.insertCell().textContent = contaValor.saldo;
+							r.insertCell().textContent = maiorLancamento;
+						}
+					} else if (aba == "abaListaQuantidade") {
+						let e = document.getElementById("listaQuantidade");
+						e.innerHTML = "";
+						let tab = document.createElement("table");
+						tab.style.border = "1px solid";
+						let r = tab.insertRow();
+						r.insertCell().innerHTML = "<b>Código</b>";
+						r.insertCell().innerHTML = "<b>Descrição</b>";
+						r.insertCell().innerHTML = "<b>Saldo</b>";
+						r.insertCell().innerHTML = "<b>Quantidade</b>";
+						e.appendChild(tab);
+						let listaContas = sistema.getListaContas().filter(lc => !lc.sintetica);
+						let lista = contasQuantidade.getValor();
+						for (let reg of lista) {
+							let contas = listaContas.filter(lc => lc.codigo.startsWith(reg.conta));
+							for (let conta of contas) {
+								let listaQuantidade = sistema.getListaQuantidade(conta.codigo);
+								conta.qtdDisponivel = listaQuantidade.reduce((soma, reg) => {
+									return soma + reg.qtdDisponivel;
+								}, 0); 
+								if (conta.qtdDisponivel) {
+									let r = tab.insertRow();
+									r.insertCell().textContent = conta.codigo;
+									r.insertCell().textContent = conta.descricao;
+									r.insertCell().textContent = conta.saldo;
+									r.insertCell().textContent = conta.qtdDisponivel;
+								}
+							}
+						}
+					} else if (aba == "abaVisualizarLancamentos") {
+						visualizarLancamentos.preencherCombos();
+					}
+				}
+			}
+			setValor(valor) {
+				let listaContas = this.getModuloSistema().getListaContas();
+				this.setListaContas(listaContas);
+				super.setValor(valor);
+			}
+			setListaContas(listaContas) {
+				this.listaContas = listaContas.map(({ codigo, descricao }) => ({
+					text: codigo + " - " + descricao,
+					value: codigo
+				}));
+				this.listaContasNaoSinteticas = listaContas.filter(item => !item.sintetica);
+				this.listaContasNaoSinteticas = this.listaContasNaoSinteticas.map(({ codigo, descricao }) => ({
+					text: codigo + " - " + descricao,
+					value: codigo
+				}));
+				this.getComponente("contasRequeremQuantidade").atualizarCombos();
+				this.getComponente("contasDepreciacao").atualizarCombos();
+				this.getComponente("simplesNacional").atualizarCombos();
+			}
+			focar() {
+				super.focar();
+				this.aba.alternar("abaLancamento");
+			}
+		}
+		let contabilidade = null;
+		function iniciar() {
+			contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
+			console.log("contabilidade", contabilidade);
+		}
+		async function salvar() {
+			let conteudo = contabilidade.getValor();
+			console.log("conteudo", conteudo);
+			let str = JSON.stringify(conteudo);
+			salvarComJanelaNativa(str);
+		}
+		async function salvarComJanelaNativa(texto) {
+		  const opcoes = { types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }] };
+		  const handle = await window.showSaveFilePicker(opcoes);
+		  const writable = await handle.createWritable();
+		  await writable.write(texto);
+		  await writable.close();
+		}
+		async function abrir() {
+			let obj = await abrirComJanelaNativa();
+			console.log("abrir", obj);
+			contabilidade.setValor(obj);
+		}
+		async function abrirComJanelaNativa() {
+		  try {
+			const opcoes = {
+			  types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }]
+			};
+			const [handle] = await window.showOpenFilePicker(opcoes);
+			const arquivo = await handle.getFile();
+			const texto = await arquivo.text();
+			return JSON.parse(texto); // Retorna o objeto JSON puro
+		  } catch (erro) {
+			console.error(erro);
+			return null;
+		  }
+		}
+		function validar() {
+			let lista = contabilidade.validar();
+			if (lista.length == 0) {
+				new Modal().mostrar("Validação", "Validação não encontrou erros");
+			}
+		}
+		function refazerLancamentos() {
+			contabilidade.refazerLancamentos();
+		}
+		function limparSaldos() {
+			contabilidade.limparSaldos(true);
+		}
+	</script>
+	<body onload="iniciar()" style="margin:0px">
+		<nav>
+			<button data-aba="abaPrincipal" data-ativo>Principal</button>
+			<button data-aba="abaAtivo">Ativo</button>
+			<button data-aba="abaPassivo">Passivo</button>
+			<button data-aba="abaReceita">Receita</button>
+			<button data-aba="abaDespesa">Custos e Despesas</button>
+			<button data-aba="abaResumo">Resumo</button>
+			<button data-aba="abaLancamento">Lançamentos</button>
+			<button data-aba="abaApuracaoResultado">Apuração de Resultado</button>
+			<button data-aba="abaErros" hidden>Erros</button>
+		</nav>
+
+		<div id="abaPrincipal" class="aba">
+			<fieldset id="principal">
+			</fieldset>
+		</div>
+		<div id="abaAtivo" class="aba">
+			<div id="ativos">
+			</div>
+		</div>
+		<div id="abaPassivo" class="aba">
+			<div id="passivos">
+			</div>
+		</div>
+		<div id="abaReceita" class="aba">
+			<div id="receitas">
+			</div>
+		</div>
+		<div id="abaDespesa" class="aba">
+			<div id="despesas">
+			</div>
+		</div>
+		<div id="abaResumo" class="aba">
+			<div id="resumo">
+			</div>
+		</div>
+		<div id="abaLancamento" class="aba" style="padding: 0px">
+			<nav>
+				<button data-aba="abaConfiguracoes" data-ativo>Configuração</button>
+				<button data-aba="abaTipoLancamentoContabil">Tipos</button>
+				<button data-aba="abaEfetuarLancamento">Efetuar</button>
+				<button data-aba="abaVisualizarLancamentos">Visualizar</button>
+				<button data-aba="abaListaQuantidade">Quantidades</button>
+				<button data-aba="abaDepreciacao">Depreciações</button>
+			</nav>
+			<div id="abaConfiguracoes" class="aba">
+				<fieldset id="lancamentos">
+				</fieldset>
+			</div>
+			<div id="abaTipoLancamentoContabil" class="aba">
+				<fieldset id="tipoLancamentoContabil">
+				</fieldset>
+			</div>
+			<div id="abaEfetuarLancamento" class="aba">
+				<fieldset id="efetuarLancamento">
+				</fieldset>
+			</div>
+			<div id="abaVisualizarLancamentos" class="aba">
+				<fieldset id="visualizarLancamentos">
+				</fieldset>
+				<div id="listaLancamentos"></div>
+			</div>
+			<div id="abaListaQuantidade" class="aba">
+				<div id="listaQuantidade"></div>
+			</div>			
+			<div id="abaDepreciacao" class="aba">
+				<div id="depreciacoes"></div>
+			</div>			
+		</div>
+		<div id="abaApuracaoResultado" class="aba" style="padding: 0px">
+			<nav>
+				<button data-aba="abaContaApuracao" data-ativo>Conta de Apuração</button>
+				<button data-aba="abaApuracao">Apuração</button>
+			</nav>
+			<div id="abaContaApuracao" class="aba">
+				<div id="apuracaoResultado">
+				</div>
+			</div>
+			<div id="abaApuracao" class="aba">
+				<fieldset id="realizarApuracao">
+				</fieldset>
+				<div id="DRE">
+				</div>
+			</div>
+		</div>
+		<div id="abaErros" class="aba">
+			<ul id="mensagens"></ul>
+		</div>
+		<button onclick="salvar()">salvar</button>
+		<button onclick="abrir()">abrir</button>
+		<button onclick="validar()">validar</button>
+		<button onclick="limparSaldos()">limpar saldos</button>
+		<button onclick="refazerLancamentos()">refazer lançamentos</button>
+	</body>
+</html>
