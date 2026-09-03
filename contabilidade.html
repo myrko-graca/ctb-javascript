@@ -75,7 +75,10 @@
 			.aba {
 				padding: 4px!important;
 			}
-			input, select, button, div, td, th {
+			button {
+			    font-size: x-small!important;
+			}
+			input, select, div, td, th {
 			    font-size: x-small!important;
 				min-width: 0!important;
 			}
@@ -2117,7 +2120,7 @@
 		
 		class ContaCTB extends ObjetoDOM {
 			constructor(elemento, nome) {
-				super(elemento, nome, {qtdColunas: 10, spanV: 10});
+				super(elemento, nome, {qtdColunas: 8, spanV: 10});
 				this.add(new CampoDOM(null, "codigo", {
 					titulo: "Código",
 					tipo: "input", 
@@ -2125,7 +2128,7 @@
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "descricao", {
-					titulo: "Descrição", spanV: 8,
+					titulo: "Descrição", spanV: 6,
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "saldo", {
