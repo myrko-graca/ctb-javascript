@@ -637,7 +637,7 @@
 				this.elemento.tabIndex = "-1";
 				if (obj.qtdColunas) {
 					this.elemento.style.display = "grid";
-					this.elemento.style.gridTemplateColumns = "repeat(" + obj.qtdColunas + ", 1fr)";
+					this.elemento.style.gridTemplateColumns = "repeat(" + obj.qtdColunas + ", minmax(0, 1fr))";
 					this.elemento.style.gap = "5px";
 					this.elemento.style.marginBottom = "3px";
 				}
@@ -1599,6 +1599,7 @@
 				this.btnSelect = document.createElement("button");
 				this.btnSelect.title = "Clique para anexar um arquivo";
 				this.btnSelect.className = "btn btn-plus";
+				this.btnSelect.style.width = "100%";
 				this.btnSelect.textContent = "anexar";
 				this.btnSelect.addEventListener("click", (e) => {
 					this.campo.click();
@@ -2120,7 +2121,7 @@
 		
 		class ContaCTB extends ObjetoDOM {
 			constructor(elemento, nome) {
-				super(elemento, nome, {qtdColunas: 8, spanV: 10});
+				super(elemento, nome, {qtdColunas: 6, spanV: 6});
 				this.add(new CampoDOM(null, "codigo", {
 					titulo: "Código",
 					tipo: "input", 
@@ -2128,7 +2129,7 @@
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "descricao", {
-					titulo: "Descrição", spanV: 6,
+					titulo: "Descrição", spanV: 4,
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "saldo", {
@@ -2476,7 +2477,6 @@
 				btBuscar.textContent = "Buscar Lançamentos";
 				btBuscar.className = "btn btn-plus";
 				btBuscar.title = "Busca os valores de receita, custo e despesa para iniciar a apuração de resultado";
-				//btBuscar.style.gridColumn = "span 2";
 				this.elemento.appendChild(btBuscar);
 				btBuscar.addEventListener("click", (e) => {
 					this.calcularLancamentos();
@@ -2484,7 +2484,6 @@
 				let btEfetuar = document.createElement("button");
 				btEfetuar.textContent = "Efetuar Apuração";
 				btEfetuar.className = "btn btn-plus";
-				//btBuscar.style.gridColumn = "span 2";
 				this.elemento.appendChild(btEfetuar);
 				btEfetuar.addEventListener("click", (e) => {
 					this.efetuarLancamentosApuracao();
