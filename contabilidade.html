@@ -1,5 +1,6 @@
 <html lang="pt-br" class="notranslate" translate="no">
 	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<style>
 		select[disabled] {
 			border-color: black;
@@ -63,6 +64,27 @@
 			background-color: #ffffff !important;
 			box-shadow: 0 1000px 0 1000px #ffffff !important;
 			z-index: 9999 !important;
+		}
+		@media (max-width: 768px) {
+			nav button {
+				font-size: x-small!important;
+			}
+			body {
+			    font-size: x-small!important;
+			}
+			.aba {
+				padding: 4px!important;
+			}
+			input, select, button, div, td, th {
+			    font-size: x-small!important;
+			}
+			input {
+				min-width: 0!important;
+			}
+			label {
+				display: flex!important; 
+				flex-direction: column!important;
+			}
 		}
 	</style>
 	<script>
@@ -2452,6 +2474,7 @@
 				btBuscar.textContent = "Buscar Lançamentos";
 				btBuscar.className = "btn btn-plus";
 				btBuscar.title = "Busca os valores de receita, custo e despesa para iniciar a apuração de resultado";
+				//btBuscar.style.gridColumn = "span 2";
 				this.elemento.appendChild(btBuscar);
 				btBuscar.addEventListener("click", (e) => {
 					this.calcularLancamentos();
@@ -2459,6 +2482,7 @@
 				let btEfetuar = document.createElement("button");
 				btEfetuar.textContent = "Efetuar Apuração";
 				btEfetuar.className = "btn btn-plus";
+				//btBuscar.style.gridColumn = "span 2";
 				this.elemento.appendChild(btEfetuar);
 				btEfetuar.addEventListener("click", (e) => {
 					this.efetuarLancamentosApuracao();
@@ -2664,7 +2688,7 @@
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "ano", {
-					titulo: "Ano fiscal", 
+					titulo: "Ano", 
 					subtipo: "number",
 					regras: {obrigatorio: true}
 				}));
@@ -3908,8 +3932,8 @@
 				</div>
 			</div>
 			<div id="abaApuracao" class="aba">
-				<fieldset id="realizarApuracao">
-				</fieldset>
+				<div id="realizarApuracao">
+				</div>
 				<div id="DRE">
 				</div>
 			</div>
