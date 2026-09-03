@@ -2127,7 +2127,7 @@
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "descricao", {
-					titulo: "Descrição", spanV: 6,
+					titulo: "Descrição", spanV: 8,
 					regras: {obrigatorio: true}
 				}));
 				this.add(new CampoDOM(null, "saldo", {
@@ -2137,7 +2137,7 @@
 					//calculado: true,
 					spanV: 2,
 					atributos: {readonly: true},
-				}));
+				}).setVisibilidade(false));
 				this.add(new CampoDOM(null, "sintetica", {
 					titulo: "Sintética", 
 					tipo: "input", 
@@ -2274,6 +2274,7 @@
 				n.alterarSaldo = (valor, natureza) => {
 					ContaCTB.alterarSaldo(n, valor, natureza);
 				}
+				n.getComponente("saldo").setVisibilidade(false);
 				n.elemento.style.gridTemplateColumns += " max-content";
 				let bt = n.getComponente("bt");
 				bt.campo.textContent = "criar";
