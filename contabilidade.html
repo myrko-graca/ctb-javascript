@@ -86,6 +86,9 @@
 				display: flex!important; 
 				flex-direction: column!important;
 			}
+			pre {
+				font-size: 7px;
+			}
 		}
 	</style>
 	<script>
@@ -466,6 +469,7 @@
 				}
 			}
 		}
+		let ehCelular = window.innerWidth <= 768;
 		class Modal {
 			constructor() {
 				if (!document.querySelector("style[id='estilo_modal']")) {
@@ -2121,7 +2125,11 @@
 		
 		class ContaCTB extends ObjetoDOM {
 			constructor(elemento, nome) {
-				super(elemento, nome, {qtdColunas: 6, spanV: 6});
+				let qtdColunas = 8;
+				if (ehCelular) {
+					qtdColunas = 6;
+				}
+				super(elemento, nome, {qtdColunas: qtdColunas, spanV: qtdColunas});
 				this.add(new CampoDOM(null, "codigo", {
 					titulo: "Código",
 					tipo: "input", 
@@ -2139,7 +2147,7 @@
 					//calculado: true,
 					spanV: 2,
 					atributos: {readonly: true},
-				}).setVisibilidade(false));
+				}).setVisibilidade(!ehCelular));
 				this.add(new CampoDOM(null, "sintetica", {
 					titulo: "Sintética", 
 					tipo: "input", 
@@ -2276,7 +2284,7 @@
 				n.alterarSaldo = (valor, natureza) => {
 					ContaCTB.alterarSaldo(n, valor, natureza);
 				}
-				n.getComponente("saldo").setVisibilidade(false);
+				n.getComponente("saldo").setVisibilidade(!ehCelular);
 				n.elemento.style.gridTemplateColumns += " max-content";
 				let bt = n.getComponente("bt");
 				bt.campo.textContent = "criar";
@@ -2338,7 +2346,7 @@
 		}
 		class Ativos extends ContaCTB {
 			constructor(aba) {
-				super(document.getElementById("ativos"), "ativos", {qtdColunas: 10});
+				super(document.getElementById("ativos"), "ativos");
 				let codigo = this.getComponente("codigo");
 				codigo.setValor(1);
 				codigo.campo.setAttribute("readonly" , true);
@@ -2356,7 +2364,7 @@
 		}
 		class Passivos extends ContaCTB {
 			constructor(aba) {
-				super(document.getElementById("passivos"), "passivos", {qtdColunas: 10});
+				super(document.getElementById("passivos"), "passivos");
 				let codigo = this.getComponente("codigo");
 				codigo.setValor(2);
 				codigo.campo.setAttribute("readonly" , true);
@@ -2374,7 +2382,7 @@
 		}
 		class Receitas extends ContaCTB {
 			constructor(aba) {
-				super(document.getElementById("receitas"), "receitas", {qtdColunas: 10});
+				super(document.getElementById("receitas"), "receitas");
 				let codigo = this.getComponente("codigo");
 				codigo.setValor(3);
 				codigo.campo.setAttribute("readonly" , true);
@@ -2392,7 +2400,7 @@
 		}
 		class Despesas extends ContaCTB {
 			constructor(aba) {
-				super(document.getElementById("despesas"), "despesas", {qtdColunas: 10});
+				super(document.getElementById("despesas"), "despesas");
 				let codigo = this.getComponente("codigo");
 				codigo.setValor(4);
 				codigo.campo.setAttribute("readonly" , true);
@@ -2410,7 +2418,7 @@
 		}
 		class ApuracaoResultado extends ContaCTB {
 			constructor(aba) {
-				super(document.getElementById("apuracaoResultado"), "apuracaoResultado", {qtdColunas: 10});
+				super(document.getElementById("apuracaoResultado"), "apuracaoResultado");
 				let codigo = this.getComponente("codigo");
 				codigo.setValor(5);
 				codigo.campo.setAttribute("readonly" , true);
@@ -2421,7 +2429,7 @@
 				sintetica.campo.setAttribute("disabled" , true);
 				this.add(new ComboFiltroDOM(null, "contaLucroPrejuizo", {
 					titulo: "Conta de Lucro/Prejuízo",
-					spanV: 7,
+					spanV: this.obj.qtdColunas - 1,
 					regras: {obrigatorio: true}
 				}));
 				this.aba = aba;
@@ -2617,6 +2625,9 @@
 				let contasCredito = this.contasApuracao.filter(c => c.conta.startsWith("3"));
 				let tam = Math.max(contasDebito.length, contasCredito.length);
 				let largura = 120;
+				if (ehCelular) {
+					largura = 80;
+				}
 				let largSaldo = 14;
 				let conteudo = "-".repeat((largura - 18) / 2) + " ARE (Transitória)" + "-".repeat((largura - 18) / 2) + "\n";
 				conteudo += "-".repeat(largura) + "\n";
@@ -2629,8 +2640,8 @@
 					let contaDebito = contasDebito[i];
 					let contaCredito = contasCredito[i];
 					if (contaDebito) {
-						let tamDesc = contaDebito.descricao.length;
-						conteudo += " " + contaDebito.descricao + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
+						let tamDesc = Math.min(contaDebito.descricao.length, largura / 2 - largSaldo - 2);
+						conteudo += " " + contaDebito.descricao.slice(0, tamDesc) + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
 						let saldo = contaDebito.saldo.toFixed(2);
 						totalDebitos += contaDebito.saldo;
 						conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 4) + saldo + " |";
@@ -2638,8 +2649,8 @@
 						conteudo += " ".repeat(largura / 2);
 					}
 					if (contaCredito) {
-						let tamDesc = contaCredito.descricao.length;
-						conteudo += " " + contaCredito.descricao + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
+						let tamDesc = Math.min(contaCredito.descricao.length, largura / 2 - largSaldo - 2);
+						conteudo += " " + contaCredito.descricao.slice(0, tamDesc) + " ".repeat(largura / 2 - largSaldo - tamDesc - 1);
 						let saldo = contaCredito.saldo.toFixed(2);
 						totalCreditos += contaCredito.saldo;
 						conteudo += "R$" + " ".repeat(largSaldo - saldo.length - 2) + saldo;
