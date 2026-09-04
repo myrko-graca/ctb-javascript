@@ -1,0 +1,35 @@
+.tela-cheia {
+	position: absolute !important;
+	top: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	width: 100% !important;
+	height: auto !important; /* Mantém a proporção vertical baseada no conteúdo */
+	margin: 0 !important;
+	box-sizing: border-box !important;
+	padding: 30px !important;
+	background-color: #ffffff !important;
+	box-shadow: 0 1000px 0 1000px #ffffff !important;
+	z-index: 9999 !important;
+}
+@media (max-width: 768px) {
+	nav button {
+		font-size: x-small!important;
+	}
+	body {
+		font-size: x-small!important;
+	}
+	.aba {
+		padding: 4px!important;
+	}
+	button {
+		font-size: x-small!important;
+	}
+	input, select, div, td, th, textarea {
+		font-size: x-small!important;
+		min-width: 0!important;
+	}
+	pre {
+		font-size: 7px;
+	}
+}

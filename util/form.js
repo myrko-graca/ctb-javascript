@@ -1,3 +1,5 @@
+import { CustomSelect } from './customselect.js?v1';
+
 if (!document.querySelector("style[id='estilo_form']")) {
 	const estilo = document.createElement('style');
 	estilo.id = "estilo_form";
@@ -25,12 +27,14 @@ if (!document.querySelector("style[id='estilo_form']")) {
 			padding: 4px 12px;
 		}
 		.btn {
+			min-height: 30px;
+			min-width: 30px;
 			border: none;
 			color: white;
 			cursor: pointer;
 			font-size: 12px;
 			transition: filter .2s;
-			border-radius: 12px;
+			border-radius: 20px;
 		}
 		.btn:hover {
 			filter: brightness(1.1);
@@ -48,7 +52,7 @@ if (!document.querySelector("style[id='estilo_form']")) {
 			border-color: #007bff;
 			box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
 			outline: none; /* Remove a borda azul padrão do navegador se quiser customizar */
-		}	
+		}
 	`;
 	document.head.appendChild(estilo);
 }
@@ -71,6 +75,7 @@ export class ObjetoDOM {
 		if (obj.titulo) {
 			let t = null;
 			if (elemento.nodeName == "FIELDSET") {
+				elemento.style.margin = "0";
 				t = document.createElement("legend");
 			} else {
 				t = document.createElement("label");
@@ -82,7 +87,7 @@ export class ObjetoDOM {
 		this.elemento.tabIndex = "-1";
 		if (obj.qtdColunas) {
 			this.elemento.style.display = "grid";
-			this.elemento.style.gridTemplateColumns = "repeat(" + obj.qtdColunas + ", 1fr)";
+			this.elemento.style.gridTemplateColumns = "repeat(" + obj.qtdColunas + ", minmax(0, 1fr))";
 			this.elemento.style.gap = "5px";
 			this.elemento.style.marginBottom = "3px";
 		}
@@ -114,22 +119,6 @@ export class ObjetoDOM {
 		this.componentes.splice(indice, 1);
 		item.elemento.remove();
 	}
-	getValor() {
-		let lista = {};
-		for (let item of this.componentes) {
-			if (!item.vazio() && !item.obj.calculado) {
-				let valor = item.getValor();
-				if (typeof valor === "object" && !Array.isArray(valor)) {
-					lista[item.nome] = valor[item.nome];
-				} else {
-					lista[item.nome] = valor;
-				}
-			}
-		}
-		let saida = {};
-		saida[this.nome] = lista;
-		return saida;
-	}
 	getHashArquivos() {
 		let lista = [];
 		for (let item of this.componentes) {
@@ -144,16 +133,34 @@ export class ObjetoDOM {
 		}
 		return lista;
 	}
+	getValor() {
+		let lista = {};
+		for (let item of this.componentes) {
+			if (!item.vazio()) {
+				let valor = item.getValor();
+				if (typeof valor === "object" && !Array.isArray(valor)) {
+					lista[item.nome] = valor[item.nome];
+				} else {
+					lista[item.nome] = valor;
+				}
+			}
+		}
+		let saida = {};
+		saida[this.nome] = lista;
+		return saida;
+	}
 	setValor(valor) {
 		if (this.somenteLeitura) {
 			throw new Error("Não é possível atribuir valor, pois está no modo de somente leitura");
 		}
 		for (let item of this.componentes) {
-			let v = valor[item.nome];
-			if (v == null || v == undefined) {
-				item.setValor("");
-			} else {
-				item.setValor(v);
+			if (!item.obj.calculado) {
+				let v = valor[item.nome];
+				if (v == null || v == undefined) {
+					item.setValor("");
+				} else {
+					item.setValor(v);
+				}
 			}
 		}
 	}
@@ -193,7 +200,7 @@ export class ObjetoDOM {
 		}
 		this.inicializado = true;
 	}
-	regrasBasicas() {
+	regrasBasicas(vazio) {
 		let lista = [];
 		if (this.obj.regras) {
 			let item = {};
@@ -204,7 +211,7 @@ export class ObjetoDOM {
 			let strObj = this.getTipo();
 			strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
 			if (this.obj.regras.obrigatorio) {
-				if (this.vazio()) {
+				if (vazio) {
 					item.mensagem = strObj + " '" + nome + "' está vazio";
 					item.componentes = [{componente: this}];
 					lista.push(item);
@@ -221,13 +228,19 @@ export class ObjetoDOM {
 		return lista;
 	}
 	validar() {
-		let lista = this.regrasBasicas();
-		for (let item of this.componentes) {
-			let validacoes = item.validar();
-			for (let v of validacoes) {
-				let obj = {componente: this};
-				v.componentes.push(obj);
-				lista.push(v);
+		let vazio = this.vazio();
+		if (!this.obj?.regras?.obrigatorio && vazio) {
+			return [];
+		}
+		let lista = this.regrasBasicas(vazio);
+		if (lista.length == 0) {
+			for (let item of this.componentes) {
+				let validacoes = item.validar();
+				for (let v of validacoes) {
+					let obj = {componente: this};
+					v.componentes.push(obj);
+					lista.push(v);
+				}
 			}
 		}
 		return lista;
@@ -254,11 +267,16 @@ export class ObjetoDOM {
 		for (let item of this.componentes) {
 			item.setSomenteLeitura(valor);
 		}
+		return this;
+	}
+	setVisibilidade(valor) {
+		this.elemento.hidden = !valor;
+		return this;
 	}
 	getSomenteLeitura() {
 		return this.somenteLeitura;
 	}
-	aoModificar(e) {
+	aoModificar(ultimo) {
 		//teria como cancelar a modificação? evento beforeinput?
 		if (this.pai) {
 			this.pai.aoModificar(this);
@@ -266,6 +284,7 @@ export class ObjetoDOM {
 	}
 	focar() {
 		this.elemento.focus();
+		return this;
 	}
 	getModuloSistema() {
 		let modulo = this;
@@ -326,6 +345,7 @@ export class ConjuntoDOM extends ObjetoDOM {
 		this.btNovo.className = "btn btn-plus";
 		this.btNovo.textContent = "novo";
 		this.btNovo.style.width = "50px";
+		this.btNovo.style.fontSize = "medium";
 		this.btNovo.style.gridColumn = "span " + obj.spanV;
 		this.elemento.appendChild(this.btNovo);
 	}
@@ -350,6 +370,9 @@ export class ConjuntoDOM extends ObjetoDOM {
 		if (valor && !Array.isArray(valor)) {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
 		}
+		if (this.obj.ordem) {
+			valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
+		}
 		if (valor.length > 0) {
 			this.limpar(true);
 			for (let v of valor) {
@@ -371,6 +394,9 @@ export class ConjuntoDOM extends ObjetoDOM {
 			}
 		}
 		return tam;
+	}
+	aposIncluir(item) {
+		//abstract
 	}
 	novo() {
 		if (this.somenteLeitura) {
@@ -397,17 +423,18 @@ export class ConjuntoDOM extends ObjetoDOM {
 		n.btExcluir = document.createElement("button");
 		n.btExcluir.className = "btn btn-clear";
 		n.btExcluir.textContent = "-";
-		n.btExcluir.style.width = "20px";
-		n.btExcluir.style.height = "20px";
 		n.btExcluir.style.alignSelf = "end";
 		n.btExcluir.addEventListener('click', (e) => {
-			this.remover(n);
+			if (confirm("Confirma remover?")) {
+				this.remover(n);
+			}
 		});
 		n.elemento.style.gridTemplateColumns += " max-content";
 		n.elemento.appendChild(n.btExcluir);
 		this.add(n);
 		this.elemento.appendChild(this.btNovo);
 		n.init();
+		this.aposIncluir(n);
 		return n;
 	}
 	remover(item) {
@@ -432,6 +459,7 @@ export class ConjuntoDOM extends ObjetoDOM {
 				});
 			}
 		}
+		this.aoModificar(this);
 	}
 	limpar(naoIncluir) {
 		if (this.somenteLeitura) {
@@ -446,6 +474,7 @@ export class ConjuntoDOM extends ObjetoDOM {
 		if (!naoIncluir) {
 			this.novo();
 		}
+		this.aoModificar(this);
 	}
 	getCampos() {
 		let saida = {};
@@ -495,8 +524,28 @@ export class ConjuntoDOM extends ObjetoDOM {
 			}
 		}
 	}
+	regrasBasicas() {
+		let lista = super.regrasBasicas(this.vazio());
+		if (this.obj?.regras?.campoChave) {
+			let nome = this.obj.titulo;
+			if (!nome) {
+				nome = this.nome;
+			}
+			let strObj = this.getTipo();
+			strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
+			let valor = this.getValor();
+			let chaves = valor.map(v => v[this.obj.regras.campoChave]);
+			if (new Set(chaves).size !== valor.length) {
+				let item = {};
+				item.mensagem = strObj + " '" + nome + "' está está com campo chave repetido";
+				item.componentes = [{componente: this}];
+				lista.push(item);
+			}
+		}
+		return lista;
+	}
 	validar() {
-		let lista = this.regrasBasicas();
+		let lista = this.regrasBasicas(this.vazio());
 		for (let item of this.componentes) {
 			if (!item.modelo && !item.vazio()) {
 				let validacoes = item.validar();
@@ -514,7 +563,7 @@ export class FichasDOM extends ObjetoDOM {
 	constructor(elemento, nome, obj) {
 		super(elemento, nome, obj);
 		this.div = document.createElement("div");
-		this.div.style.gridColumn = "span " + obj.spanV;
+		this.div.style.gridColumn = "span " + obj.qtdColunas;
 		this.div.style.marginTop = "20px";
 		let div = document.createElement("div");
 		div.className = "file-group";
@@ -526,34 +575,48 @@ export class FichasDOM extends ObjetoDOM {
 		this.btNovo.textContent = "+";
 		this.btNovo.className = "btn btn-plus";
 		this.btNovo.title = "Incluir novo elemento";
-		this.btNovo.style.width = "30px";
 		div.appendChild(this.btNovo);
-		this.btAnterior = document.createElement("button");
-		this.btAnterior.addEventListener('click', (e) => {
+		let btPrimeiro = document.createElement("button");
+		btPrimeiro.addEventListener('click', (e) => {
+			this.primeiro();
+		});
+		btPrimeiro.textContent = "<<";
+		btPrimeiro.className = "btn btn-view";
+		btPrimeiro.title = "Ir para o primeiro elemento";
+		div.appendChild(btPrimeiro);
+		let btAnterior = document.createElement("button");
+		btAnterior.addEventListener('click', (e) => {
 			this.anterior();
 		});
-		this.btAnterior.textContent = "<";
-		this.btAnterior.className = "btn btn-view";
-		this.btAnterior.title = "Ir para o elemento anterior";
-		this.btAnterior.style.width = "30px";
-		div.appendChild(this.btAnterior);
-		this.btProximo = document.createElement("button");
-		this.btProximo.addEventListener('click', (e) => {
+		btAnterior.textContent = "<";
+		btAnterior.className = "btn btn-view";
+		btAnterior.title = "Ir para o elemento anterior";
+		div.appendChild(btAnterior);
+		let btProximo = document.createElement("button");
+		btProximo.addEventListener('click', (e) => {
 			this.proximo();
 		});
-		this.btProximo.textContent = ">";
-		this.btProximo.className = "btn btn-view";
-		this.btProximo.title = "Ir para o próximo elemento";
-		this.btProximo.style.width = "30px";
-		div.appendChild(this.btProximo);
+		btProximo.textContent = ">";
+		btProximo.className = "btn btn-view";
+		btProximo.title = "Ir para o próximo elemento";
+		div.appendChild(btProximo);
+		let btUltimo = document.createElement("button");
+		btUltimo.addEventListener('click', (e) => {
+			this.ultimo();
+		});
+		btUltimo.textContent = ">>";
+		btUltimo.className = "btn btn-view";
+		btUltimo.title = "Ir para o último elemento";
+		div.appendChild(btUltimo);
 		this.btRemover = document.createElement("button");
 		this.btRemover.addEventListener('click', (e) => {
-			this.remover();
+			if (confirm("Confirma remover?")) {
+				this.remover();
+			}
 		});
 		this.btRemover.textContent = "-";
 		this.btRemover.className = "btn btn-clear";
 		this.btRemover.title = "Excluir o elemento posicionado";
-		this.btRemover.style.width = "30px";
 		div.appendChild(this.btRemover);
 		this.contador = document.createElement("label");
 		this.contador.style.marginLeft = "5px";
@@ -574,6 +637,12 @@ export class FichasDOM extends ObjetoDOM {
 		super.setValor(reg);
 		this.setSomenteLeitura(aux);
 	}
+	primeiro() {
+		this.buscaValor();
+		this.posicao = 0;
+		this.mandaValor();
+		this.atualizarContador();
+	}
 	anterior() {
 		if (this.posicao > 0) {
 			this.buscaValor();
@@ -590,6 +659,12 @@ export class FichasDOM extends ObjetoDOM {
 		}
 		this.atualizarContador();
 	}
+	ultimo() {
+		this.buscaValor();
+		this.posicao = this.lista.length - 1;
+		this.mandaValor();
+		this.atualizarContador();
+	}
 	getValor() {
 		let saida = [];
 		this.buscaValor();
@@ -604,6 +679,9 @@ export class FichasDOM extends ObjetoDOM {
 	setValor(valor) {
 		if (valor && !Array.isArray(valor)) {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
+		}
+		if (this.obj.ordem) {
+			valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
 		}
 		if (valor.length > 0) {
 			this.limpar();
@@ -628,6 +706,7 @@ export class FichasDOM extends ObjetoDOM {
 		this.posicao = this.lista.length - 1;
 		this.mandaValor();
 		this.atualizarContador();
+		return novo;
 	}
 	remover() {
 		if (this.somenteLeitura) {
@@ -643,6 +722,7 @@ export class FichasDOM extends ObjetoDOM {
 		}
 		this.mandaValor();
 		this.atualizarContador();
+		this.aoModificar(this);
 	}
 	limpar() {
 		if (this.somenteLeitura) {
@@ -652,6 +732,7 @@ export class FichasDOM extends ObjetoDOM {
 		this.posicao = 0;
 		this.mandaValor();
 		this.atualizarContador();
+		this.aoModificar(this);
 	}
 	atualizarContador() {
 		this.contador.textContent = (this.posicao + 1) + "/" + this.lista.length;
@@ -678,7 +759,7 @@ export class FichasDOM extends ObjetoDOM {
 		this.elemento.appendChild(this.div);
 	}
 	validar() {
-		let lista = this.regrasBasicas();
+		let lista = this.regrasBasicas(this.vazio());
 		let posAtual = this.posicao;
 		this.buscaValor();
 		for (let item of this.lista) {
@@ -707,13 +788,57 @@ export class FichasDOM extends ObjetoDOM {
 		}
 	}
 }
+export class ComboFiltroDOM extends ObjetoDOM {
+	constructor(elemento, nome, obj) {
+		if (!obj) {
+			obj = {};
+		}
+		if (!obj.tipo) {
+			obj.tipo = "div";
+		}
+		let elementoPai = null;
+		if (!elemento) {
+			elemento = document.createElement("div");
+		} else {
+			elementoPai = elemento.parentNode;
+		}
+		super(elementoPai, nome, obj);
+		elemento.style.height = "30px";
+		this.cs = new CustomSelect(elemento, obj); 
+		let label = this.elemento.querySelector("label");
+		if (label) {
+			label.appendChild(elemento);
+		} else {
+			this.elemento.appendChild(elemento);
+		}
+		this.campo = this.cs.elemento;
+		if (this.obj.opcoes) {
+			this.setOpcoes(this.obj.opcoes);
+		}
+	}
+	setOpcoes(opcoes) {
+		this.cs.setOptions(opcoes);
+	}
+	vazio() {
+		return this.cs.getValue() == null;
+	}
+	getValor() {
+		return this.cs.getValue();
+	}
+	setValor(valor) {
+		this.cs.setValue(valor);
+	}
+	getTipo() {
+		return "campo";
+	}
+}
 export class CampoDOM extends ObjetoDOM {
 	constructor(elemento, nome, obj) {
 		if (!obj) {
 			obj = {};
 		}
 		if (!obj.tipo) {
-			obj.tipo = "INPUT";
+			obj.tipo = "input";
 			if (!obj.subtipo) {
 				obj.subtipo = "text";
 			}
@@ -737,12 +862,16 @@ export class CampoDOM extends ObjetoDOM {
 		this.campo = elemento;
 		this.campo.name = nome;
 		if (this.campo.type == "checkbox") {
-			this.campo.style.width = "16px";
-			this.campo.style.height = "16px";
+			this.campo.style.width = "26px";
+			this.campo.style.height = "26px";
 			this.campo.style.display = "flex";
 		} else {
 			this.campo.style.width = "100%";
-			this.campo.style.height = "20px";
+			if (!this.obj.atributos?.rows) {
+				this.campo.style.height = "30px";
+			}
+			this.campo.style.fontSize = "medium";
+			this.campo.style.fontFamily = "arial";
 		}
 		if (obj.atributos) {
 			for (let a in obj.atributos) {
@@ -753,7 +882,7 @@ export class CampoDOM extends ObjetoDOM {
 	init() {
 		super.init();
 		this.campo.addEventListener("change", (e) => {
-			this.aoModificar(this);
+			this.aoModificar(e);
 		});
 		if (this.obj.opcoes) {
 			if (this.campo.nodeName == "SELECT") {
@@ -783,7 +912,7 @@ export class CampoDOM extends ObjetoDOM {
 							r.name = nome + "." + value;
 						}
 						r.addEventListener("change", (e) => {
-							this.aoModificar(this, e);
+							this.aoModificar(e);
 						});
 						let l = document.createElement("label");
 						l.textContent = text;
@@ -842,6 +971,15 @@ export class CampoDOM extends ObjetoDOM {
 		} else {
 			this.campo.value = valor;
 		}
+	}
+	setOpcoes(opcoes) {
+		let valor = this.getValor();
+		this.campo.length = 1;
+		opcoes.forEach(item => {
+			const o = new Option(item.text, item.value);
+			this.campo.add(o);
+		});
+		this.setValor(valor);
 	}
 	vazio() {
 		if (this.getValor()) {
@@ -911,6 +1049,7 @@ export class CampoArquivo extends CampoDOM {
 		this.btnSelect = document.createElement("button");
 		this.btnSelect.title = "Clique para anexar um arquivo";
 		this.btnSelect.className = "btn btn-plus";
+		this.btnSelect.style.width = "100%";
 		this.btnSelect.textContent = "anexar";
 		this.btnSelect.addEventListener("click", (e) => {
 			this.campo.click();
@@ -936,7 +1075,6 @@ export class CampoArquivo extends CampoDOM {
 						//Gravar a informação do arquivo no primeiro nível do Sistema
 						let sistema = this.getModuloSistema();
 						sistema.setArquivo(this.hash, infoArquivo);
-						console.log("sistema", sistema)
 						this.configuraBotoes(infoArquivo.nome);
 					};
 				} catch (erro) {
@@ -1085,25 +1223,33 @@ export class CampoCPF extends CampoDOM {
 		return limpo;
 	}
 	validar() {
+		let vazio = this.vazio();
 		let valor = this.getValor();
-		this.setValor(valor);
+		if (!vazio) {
+			this.setValor(valor);
+		}
 		let lista = super.validar();
-		if (this.#validar(valor)) {
-			this.setValor(this.#formatar(valor));
-		} else {
-			let item = {};
-			let nome = this.obj.titulo;
-			if (!nome) {
-				nome = this.nome;
+		if (!vazio) {
+			if (this.#validar(valor)) {
+				this.setValor(this.#formatar(valor));
+			} else {
+				let item = {};
+				let nome = this.obj.titulo;
+				if (!nome) {
+					nome = this.nome;
+				}
+				item.mensagem = "Campo '" + nome + "' não está correto";
+				item.componentes = [{componente: this}];
+				lista.push(item);
 			}
-			item.mensagem = "CPF '" + nome + "' não está correto";
-			item.componentes = [{componente: this}];
-			lista.push(item);
 		}
 		return lista;
 	}
 	getValor() {
-		let valor = this.#limparValor();
+		let valor = "";
+		if (this.campo.value) {
+			valor = this.#limparValor();
+		}
 		return valor;
 	}
 	setValor(valor) {
@@ -1169,29 +1315,150 @@ export class CampoCNPJ extends CampoDOM {
 		return limpo
 	}
 	validar() {
+		let vazio = this.vazio();
 		let valor = this.getValor();
-		this.setValor(valor);
+		if (!vazio) {
+			this.setValor(valor);
+		}
 		let lista = super.validar();
-		if (this.#validar(valor)) {
-			this.setValor(this.#formatar(valor));
-		} else {
-			let item = {};
-			let nome = this.obj.titulo;
-			if (!nome) {
-				nome = this.nome;
+		if (!vazio) {
+			if (this.#validar(valor)) {
+				this.setValor(this.#formatar(valor));
+			} else {
+				let item = {};
+				let nome = this.obj.titulo;
+				if (!nome) {
+					nome = this.nome;
+				}
+				item.mensagem = "Campo '" + nome + "' não está correto";
+				item.componentes = [{componente: this}];
+				lista.push(item);
 			}
-			item.mensagem = "CNPJ '" + nome + "' não está correto";
-			item.componentes = [{componente: this}];
-			lista.push(item);
 		}
 		return lista;
 	}
 	getValor() {
-		let valor = this.#limparValor();
+		let valor = "";
+		if (this.campo.value) {
+			valor = this.#limparValor();
+		}
 		return valor;
 	}
 	setValor(valor) {
 		super.setValor(this.#formatar(valor));
+	}
+}
+export class CNPJCPF extends ObjetoDOM {
+	constructor(elemento, nome, obj) {
+		if (!obj) {
+			obj = {};
+		}
+		obj.qtdColunas = 3;
+		if (!obj.tipo) {
+			obj.tipo = "div";
+		}
+		let aux = obj;
+		obj = structuredClone(obj);
+		delete obj.titulo;
+		super(elemento, nome, obj);
+		this.obj = aux;
+		this.tipo = new CampoDOM(null, "tipo", {
+			titulo: "Tipo", 
+			tipo: "select",
+			opcoes: [{text: "CNPJ", value: "cnpj"}, {text: "CPF", value: "cpf"}],
+			regras: {obrigatorio: true}
+		});
+		this.add(this.tipo);
+		this.cnpj = new CampoCNPJ(null, "documento", {
+			titulo: "CNPJ", 
+			spanV: 2, 
+		}).setVisibilidade(false);
+		this.add(this.cnpj);
+		this.cpf = new CampoCPF(null, "documento", {
+			titulo: "CPF", 
+			spanV: 2, 
+		}).setVisibilidade(false);
+		this.add(this.cpf);
+		this.tipo.aoModificar = (e) => {
+			super.aoModificar(this.tipo);
+			if (this.tipo.getValor() == "cnpj") {
+				this.cnpj.setVisibilidade(true);
+				this.cpf.setVisibilidade(false);
+				this.cpf.limpar();
+			} else if (this.tipo.getValor() == "cpf") {
+				this.cnpj.setVisibilidade(false);
+				this.cnpj.limpar();
+				this.cpf.setVisibilidade(true);
+			} else {
+				this.cnpj.setVisibilidade(false);
+				this.cnpj.limpar();
+				this.cpf.setVisibilidade(false);
+				this.cpf.limpar();
+			}
+		}
+	}
+	validar() {
+		let lista = super.validar();
+		let tipo = this.tipo.getValor();
+		if (tipo == "cnpj" && this.cnpj.vazio()) {
+			let item = {};
+			item.mensagem = "É necessário preencher o campo CNPJ";
+			item.componentes = [{componente: this.cnpj}, {componente: this}, ];
+			lista.push(item);					
+		} else if (tipo == "cpf" && this.cpf.vazio()) {
+			let item = {};
+			item.mensagem = "É necessário preencher o campo CPF";
+			item.componentes = [{componente: this.cpf}, {componente: this}, ];
+			lista.push(item);					
+		}
+		return lista;
+	}
+	setValor(valor) {
+		super.setValor(valor);
+		this.tipo.aoModificar(this.tipo.campo);
+	}
+}
+export class IntervaloDOM extends ObjetoDOM {
+	constructor(elemento, nome, obj, subtipo) {
+		if (!obj) {
+			obj = {};
+		}
+		if (!obj.tipo) {
+			obj.tipo = "div";
+		}
+		if (!obj.qtdColunas) {
+			obj.qtdColunas = 2;
+		}
+		if (!subtipo) {
+			subtipo = "date";
+		}
+		let aux = obj;
+		obj = structuredClone(obj);
+		delete obj.titulo;
+		super(elemento, nome, obj);
+		this.obj = aux;
+		this.inicio = new CampoDOM(null, "inicio", {
+			titulo: "Início",
+			subtipo: subtipo,
+			regras: {obrigatorio: true},
+		})
+		this.add(this.inicio);
+		this.fim = new CampoDOM(null, "fim", {
+			titulo: "Fim",
+			subtipo: subtipo,
+			regras: {obrigatorio: true},
+		})
+		this.add(this.fim);
+	}
+	validar() {
+		let lista = super.validar();
+		if (!this.inicio.vazio() && !this.fim.vazio() && this.inicio.getValor() > this.fim.getValor()) {
+			let item = {};
+			item.mensagem = "Início não pode ser maior do que fim";
+			item.componentes = [{componente: this.inicio}, {componente: this}, ];
+			lista.push(item);					
+		}
+		return lista;
 	}
 }
 export class CampoEMail extends CampoDOM {
@@ -1270,20 +1537,25 @@ export class CampoTelefone extends CampoDOM {
 		return true;
 	}
 	validar() {
+		let vazio = this.vazio();
 		let valor = this.getValor();
-		this.setValor(valor);
+		if (!vazio) {
+			this.setValor(valor);
+		}
 		let lista = super.validar();
-		if (this.#validar(valor)) {
-			this.setValor(this.#formatar(valor));
-		} else {
-			let item = {};
-			let nome = this.obj.titulo;
-			if (!nome) {
-				nome = this.nome;
+		if (!vazio) {
+			if (this.#validar(valor)) {
+				this.setValor(this.#formatar(valor));
+			} else {
+				let item = {};
+				let nome = this.obj.titulo;
+				if (!nome) {
+					nome = this.nome;
+				}
+				item.mensagem = "Telefone '" + nome + "' não está correto";
+				item.componentes = [{componente: this}];
+				lista.push(item);
 			}
-			item.mensagem = "Telefone '" + nome + "' não está correto";
-			item.componentes = [{componente: this}];
-			lista.push(item);
 		}
 		return lista;
 	}

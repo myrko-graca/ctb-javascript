@@ -215,7 +215,7 @@ export class ControleAba {
 		}
 		this.aoAlterar = null;
 		this.posicaoY = new Object();
-		this.util = new Util();
+		//this.util = new Util();
 		this.abaAtiva = null;
 		if (abaAtiva) {
 			this.alternar(abaAtiva);
@@ -232,7 +232,6 @@ export class ControleAba {
 				  display: flex;
 				  flex-wrap: wrap;
 				  border-bottom: 2px solid #e0e0e0;
-				  background-color: #f8f9fa;
 				  gap: 4px;
 				  padding: 8px 8px 0 8px;
 				}
@@ -254,16 +253,7 @@ export class ControleAba {
 				  background-color: #f1f3f4;
 				  color: #1a73e8;
 				}
-				body:has(nav ~ .aba:nth-child(1 of .aba):not(.hidden)) nav button:nth-child(1),
-				body:has(nav ~ .aba:nth-child(2 of .aba):not(.hidden)) nav button:nth-child(2),
-				body:has(nav ~ .aba:nth-child(3 of .aba):not(.hidden)) nav button:nth-child(3),
-				body:has(nav ~ .aba:nth-child(4 of .aba):not(.hidden)) nav button:nth-child(4),
-				body:has(nav ~ .aba:nth-child(5 of .aba):not(.hidden)) nav button:nth-child(5),
-				body:has(nav ~ .aba:nth-child(6 of .aba):not(.hidden)) nav button:nth-child(6),
-				body:has(nav ~ .aba:nth-child(7 of .aba):not(.hidden)) nav button:nth-child(7),
-				body:has(nav ~ .aba:nth-child(8 of .aba):not(.hidden)) nav button:nth-child(8),
-				body:has(nav ~ .aba:nth-child(9 of .aba):not(.hidden)) nav button:nth-child(9),
-				body:has(nav ~ .aba:nth-child(10 of .aba):not(.hidden)) nav button:nth-child(10) {
+				nav button[data-ativo] {
 				  background-color: #ffffff;
 				  border-color: #e0e0e0;
 				  color: #1a73e8;
@@ -278,36 +268,46 @@ export class ControleAba {
 				}
 			`;
 			document.head.appendChild(estilo);
-			let bts = document.querySelectorAll("nav button[data-aba]");
-			for (let bt of bts) {
-				let aba = bt.getAttribute("data-aba");
-				if (aba) {
-					bt.addEventListener("click", (e) => {
-						this.alternar(aba);
-					});
-				}
-			};
 		}
+		let bts = this.elemento.querySelectorAll(":scope > nav > button[data-aba]");
+		for (let bt of bts) {
+			let aba = bt.getAttribute("data-aba");
+			if (aba) {
+				bt.addEventListener("click", (e) => {
+					this.alternar(aba);
+				});
+			}
+			if (!bt.hasAttribute("data-ativo")) {
+				let conteudo = this.elemento.querySelector(":scope > #" + aba);
+				conteudo.hidden = true;
+			}
+		};
 	}
 	alternar(aba) {
-		this.util.verificarSessao();
-		this.elemento.querySelectorAll(":scope > .aba:not(.hidden)").forEach(botao => {
-			this.posicaoY[botao.id] = window.scrollY;
-			botao.classList.add("hidden");
-		});
-		let botao = this.elemento.querySelector(":scope > #" + aba + ".hidden");
-		if (botao) {
-			botao.classList.remove("hidden");
-			if (this.aoAlterar) {
-				this.aoAlterar(aba);
-			}
-			if (this.posicaoY[aba]) {
-				window.scrollTo(0, this.posicaoY[aba]);
+		let bts = this.elemento.querySelectorAll(":scope > nav > button[data-aba]");
+		for (let bt of bts) {
+			let abaAtual = bt.getAttribute("data-aba");
+			let conteudo = this.elemento.querySelector(":scope > #" + abaAtual);
+			if (abaAtual == aba) {
+				bt.setAttribute("data-ativo", "");
+				conteudo.hidden = false;
 			} else {
-				window.scrollTo(0, 0);
+				bt.removeAttribute("data-ativo");
+				conteudo.hidden = true;
 			}
-			this.abaAtiva = aba;
 		}
+		if (this.aoAlterar) {
+			this.aoAlterar(aba);
+		}
+		if (this.abaAtiva) {
+			this.posicaoY[this.abaAtiva] = window.scrollY;
+		}
+		if (this.posicaoY[aba]) {
+			window.scrollTo(0, this.posicaoY[aba]);
+		} else {
+			window.scrollTo(0, 0);
+		}
+		this.abaAtiva = aba;
 	}
 }
 export class Menu {
@@ -437,3 +437,4 @@ export class Modal {
 		document.getElementById('meuModal').showModal();
 	}	
 }
+

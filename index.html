@@ -1,0 +1,105 @@
+<html lang="pt-br" class="notranslate" translate="no">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="ctb.css?v1">
+		<script type="module" src="ctb.js?v1"></script>
+		<title>Contabilidade Javascript</title>
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwZjJmNSIvPgogIDxyZWN0IHg9IjYiIHk9IjIwIiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjYmRjM2M3IiByeD0iMSIvPgogIDxyZWN0IHg9IjEzIiB5PSIxNCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IiM5NWExYTYiIHJ4PSIxIi8+CiAgPHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iMTgiIHg9IjIwIiB5PSI4IiBmaWxsPSIjN2Y4YzhkIiByeD0iMSIvPgogIDxwYXRoIGQ9Ik00IDI2IEwxMCAxOCBMMTYgMjIgTDI4IDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNMjIgOCBMMjggOCBMMjggMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+" />
+
+	</head>
+	<body style="margin:0px">
+		<nav>
+			<button data-aba="abaPrincipal" data-ativo>Principal</button>
+			<button data-aba="abaAtivo">Ativo</button>
+			<button data-aba="abaPassivo">Passivo</button>
+			<button data-aba="abaReceita">Receita</button>
+			<button data-aba="abaDespesa">Custos e Despesas</button>
+			<button data-aba="abaResumo">Resumo</button>
+			<button data-aba="abaLancamento">Lançamentos</button>
+			<button data-aba="abaApuracaoResultado">Apuração de Resultado</button>
+			<button data-aba="abaErros" hidden>Erros</button>
+		</nav>
+
+		<div id="abaPrincipal" class="aba">
+			<fieldset id="principal">
+			</fieldset>
+		</div>
+		<div id="abaAtivo" class="aba">
+			<div id="ativos">
+			</div>
+		</div>
+		<div id="abaPassivo" class="aba">
+			<div id="passivos">
+			</div>
+		</div>
+		<div id="abaReceita" class="aba">
+			<div id="receitas">
+			</div>
+		</div>
+		<div id="abaDespesa" class="aba">
+			<div id="despesas">
+			</div>
+		</div>
+		<div id="abaResumo" class="aba">
+			<div id="resumo">
+			</div>
+		</div>
+		<div id="abaLancamento" class="aba" style="padding: 0px">
+			<nav>
+				<button data-aba="abaConfiguracoes" data-ativo>Configuração</button>
+				<button data-aba="abaTipoLancamentoContabil">Tipos</button>
+				<button data-aba="abaEfetuarLancamento">Efetuar</button>
+				<button data-aba="abaVisualizarLancamentos">Visualizar</button>
+				<button data-aba="abaListaQuantidade">Quantidades</button>
+				<button data-aba="abaDepreciacao">Depreciações</button>
+			</nav>
+			<div id="abaConfiguracoes" class="aba">
+				<fieldset id="lancamentos">
+				</fieldset>
+			</div>
+			<div id="abaTipoLancamentoContabil" class="aba">
+				<fieldset id="tipoLancamentoContabil">
+				</fieldset>
+			</div>
+			<div id="abaEfetuarLancamento" class="aba">
+				<fieldset id="efetuarLancamento">
+				</fieldset>
+			</div>
+			<div id="abaVisualizarLancamentos" class="aba">
+				<fieldset id="visualizarLancamentos">
+				</fieldset>
+				<div id="listaLancamentos"></div>
+			</div>
+			<div id="abaListaQuantidade" class="aba">
+				<div id="listaQuantidade"></div>
+			</div>			
+			<div id="abaDepreciacao" class="aba">
+				<div id="depreciacoes"></div>
+			</div>			
+		</div>
+		<div id="abaApuracaoResultado" class="aba" style="padding: 0px">
+			<nav>
+				<button data-aba="abaContaApuracao" data-ativo>Conta de Apuração</button>
+				<button data-aba="abaApuracao">Apuração</button>
+			</nav>
+			<div id="abaContaApuracao" class="aba">
+				<div id="apuracaoResultado">
+				</div>
+			</div>
+			<div id="abaApuracao" class="aba">
+				<div id="realizarApuracao">
+				</div>
+				<div id="DRE">
+				</div>
+			</div>
+		</div>
+		<div id="abaErros" class="aba">
+			<ul id="mensagens"></ul>
+		</div>
+		<button id="salvar">salvar</button>
+		<button id="abrir">abrir</button>
+		<button id="validar">validar</button>
+		<button id="refazerLancamentos">refazer lançamentos</button>
+	</body>
+</html>
