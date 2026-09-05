@@ -1,4 +1,5 @@
 import { CustomSelect } from './customselect.js?v1';
+console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
 if (!document.querySelector("style[id='estilo_form']")) {
 	const estilo = document.createElement('style');

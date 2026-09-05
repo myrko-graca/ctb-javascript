@@ -9,8 +9,10 @@ import { CampoDOM } from './util/form.js?v1';
 import { CampoArquivo } from './util/form.js?v1';
 import { CNPJCPF } from './util/form.js?v1';
 import { IntervaloDOM } from './util/form.js?v1';
+import { NavigationMenu } from './util/menu.js';
 
 let ehCelular = window.innerWidth <= 768;
+console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
 
 class ContaCTB extends ObjetoDOM {
 	constructor(elemento, nome) {
@@ -1728,23 +1730,50 @@ async function abrirComJanelaNativa() {
 let contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
 console.log("contabilidade", contabilidade);
 
-document.getElementById("salvar").addEventListener("click", async (e) => {
-	let conteudo = contabilidade.getValor();
-	console.log("conteudo", conteudo);
-	let str = JSON.stringify(conteudo);
-	salvarComJanelaNativa(str);
-});
-document.getElementById("abrir").addEventListener("click", async (e) => {
-	let obj = await abrirComJanelaNativa();
-	console.log("abrir", obj);
-	contabilidade.setValor(obj);
-});
-document.getElementById("validar").addEventListener("click", (e) => {
-	let lista = contabilidade.validar();
-	if (lista.length == 0) {
-		new Modal().mostrar("Validação", "Validação não encontrou erros");
+async function acaoAoClicar(event, elementoClicado) {
+	const textoDoLink = elementoClicado.textContent;
+	const linkDestino = elementoClicado.getAttribute('href');
+	console.log(`Você clicou no menu: ${textoDoLink} que aponta para: ${linkDestino}`);
+	if (linkDestino === "#abrir") {
+		let obj = await abrirComJanelaNativa();
+		console.log("abrir", obj);
+		contabilidade.setValor(obj);
 	}
-});
-document.getElementById("refazerLancamentos").addEventListener("click", (e) => {
-	contabilidade.refazerLancamentos();
-});
+	if (linkDestino === "#salvar") {
+		let conteudo = contabilidade.getValor();
+		console.log("conteudo", conteudo);
+		let str = JSON.stringify(conteudo);
+		salvarComJanelaNativa(str);
+	}
+	if (linkDestino === "#contas.json") {
+		fetch("dados/contas.json")
+			.then(resposta => resposta.json())
+			.then(obj => {
+				console.log(obj);
+				contabilidade.setValor(obj);
+			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
+		);
+	}
+	if (linkDestino === "#validar") {
+		let lista = contabilidade.validar();
+		if (lista.length == 0) {
+			new Modal().mostrar("Validação", "Validação não encontrou erros");
+		}
+	}
+	if (linkDestino === "#refazerLancamentos") {
+		contabilidade.refazerLancamentos();
+	}
+	if (linkDestino === "#consolidarAno") {
+		alert("em elaboração");
+	}
+	if (linkDestino === "#sobre") {
+		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.  Em desenvolvimento por Myrko I. da Graça"); 
+	}
+}
+const meuMenu = new NavigationMenu(
+  'nav', 
+  'btn-mobile', 
+  '.dropdown-toggle', 
+  '.dropdown-item', 
+  acaoAoClicar
+);
