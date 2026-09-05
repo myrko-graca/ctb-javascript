@@ -267,19 +267,20 @@ body {
 	document.head.appendChild(estilo);
 }
 export class NavigationMenu {
-  // 1. Adicione um novo parâmetro 'onLinkClick' no constructor
   constructor(navId, btnMobileId, dropdownToggleClass, dropdownItemClass, onLinkClick = null) {
     this.nav = document.getElementById(navId);
     this.btnMobile = document.getElementById(btnMobileId);
-    this.dropdownToggle = document.querySelector(dropdownToggleClass);
-    this.dropdownItem = document.querySelector(dropdownItemClass);
-    this.onLinkClick = onLinkClick; // <-- Guarda a função que você quer executar
+    
+    // 1. Mudamos para querySelectorAll para capturar TODOS os dropdowns da página
+    this.dropdownToggles = document.querySelectorAll(dropdownToggleClass);
+    
+    this.onLinkClick = onLinkClick;
 
     this.toggleMenu = this.toggleMenu.bind(this);
     this.toggleDropdown = this.toggleDropdown.bind(this);
     this.handleOutsideClick = this.handleOutsideClick.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
-    this.handleMenuLinkClick = this.handleMenuLinkClick.bind(this); // <-- Vincula o novo método
+    this.handleMenuLinkClick = this.handleMenuLinkClick.bind(this);
 
     this.init();
   }
@@ -293,18 +294,32 @@ export class NavigationMenu {
     this.btnMobile.setAttribute('aria-expanded', active);
   }
 
+  // 2. Atualizamos o método para saber exatamente qual dropdown foi clicado
   toggleDropdown(event) {
     if (window.innerWidth <= 768) {
       event.preventDefault();
-      this.dropdownItem.classList.toggle('open');
+      
+      // event.currentTarget é o link clicado. O parentElement é o <li> correspondente
+      const currentItem = event.currentTarget.parentElement;
+      
+      // Opcional: Fecha outros dropdowns que estiverem abertos ao abrir um novo
+      document.querySelectorAll('.dropdown-item').forEach(item => {
+        if (item !== currentItem) item.classList.remove('open');
+      });
+
+      currentItem.classList.toggle('open');
     }
   }
 
+  // 3. Atualizamos para fechar todos os dropdowns abertos
   closeAllMenus() {
     if (this.nav && this.btnMobile) {
       this.nav.classList.remove('active');
       this.btnMobile.classList.remove('active');
-      this.dropdownItem.classList.remove('open');
+      
+      // Fecha todos os dropdowns de uma vez
+      document.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('open'));
+      
       this.btnMobile.setAttribute('aria-expanded', 'false');
     }
   }
@@ -325,15 +340,9 @@ export class NavigationMenu {
     }
   }
 
-  // 2. Novo método que gerencia o clique em qualquer link do menu
   handleMenuLinkClick(event) {
-    // Evita rodar o código se clicou no botão que apenas abre o dropdown
     if (event.target.classList.contains('dropdown-toggle')) return;
-
-    // Fecha o menu automaticamente após o clique (ótimo para celular)
     this.closeAllMenus();
-
-    // Se você passou uma função personalizada, ela roda agora passando o evento e o link clicado
     if (typeof this.onLinkClick === 'function') {
       this.onLinkClick(event, event.target);
     }
@@ -344,11 +353,11 @@ export class NavigationMenu {
       this.btnMobile.addEventListener('click', this.toggleMenu);
       this.btnMobile.addEventListener('touchstart', this.toggleMenu);
       
-      if (this.dropdownToggle) {
-        this.dropdownToggle.addEventListener('click', this.toggleDropdown);
-      }
+      // 4. Adiciona o evento de clique em CADA um dos botões de dropdown encontrados
+      this.dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', this.toggleDropdown);
+      });
 
-      // 3. Escuta cliques em todos os links de dentro do menu
       const links = this.nav.querySelectorAll('.menu a');
       links.forEach(link => link.addEventListener('click', this.handleMenuLinkClick));
 
