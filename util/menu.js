@@ -21,7 +21,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		}
 		.logo {
 		  color: #ffffff;
-		  font-size: 1.5rem;
+		  font-size: 1.3rem;
 		  font-weight: bold;
 		  text-decoration: none;
 		}
