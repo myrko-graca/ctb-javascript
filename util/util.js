@@ -229,14 +229,14 @@ export class ControleAba {
 					display: none;
 					opacity: 0;
 				}
-				nav {
+				.navAba {
 				  display: flex;
 				  flex-wrap: wrap;
 				  border-bottom: 2px solid #e0e0e0;
 				  gap: 4px;
 				  padding: 8px 8px 0 8px;
 				}
-				nav button {
+				.navAba button {
 				  background: none;
 				  border: 1px solid transparent;
 				  border-bottom: none;
@@ -250,11 +250,11 @@ export class ControleAba {
 				  transition: all 0.2s ease;
 				  margin-bottom: -2px;
 				}
-				nav button:hover {
+				.navAba button:hover {
 				  background-color: #f1f3f4;
 				  color: #1a73e8;
 				}
-				nav button[data-ativo] {
+				.navAba button[data-ativo] {
 				  background-color: #ffffff;
 				  border-color: #e0e0e0;
 				  color: #1a73e8;

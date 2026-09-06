@@ -1772,7 +1772,7 @@ async function acaoAoClicar(event, elementoClicado) {
 		consolidarAno();
 	}
 	if (linkDestino === "#sobre") {
-		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.  Em desenvolvimento por Myrko I. da Graça"); 
+		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.\nEm desenvolvimento por Myrko I. da Graça"); 
 	}
 }
 function consolidarAno() {

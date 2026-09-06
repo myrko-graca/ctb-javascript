@@ -103,6 +103,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
+			height: 50px;
 		  }
 		  #nav {
 			position: absolute;
@@ -161,7 +162,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			flex-direction: column;
 			gap: 0;
 			position: fixed;
-			top: 70px;
+			top: 50px;
 			left: 0;
 			width: 100%;
 			background-color: #1a1a1a;
