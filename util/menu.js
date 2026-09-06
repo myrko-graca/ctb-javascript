@@ -14,7 +14,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		  align-items: center;
 		  background-color: #1a1a1a;
 		  color: #ffffff;
-		  padding: 0 2rem;
+		  padding: 0 1.5rem;
 		  height: 70px;
 		  position: relative;
 		  z-index: 1000;
