@@ -1,15 +1,14 @@
-import { Modal } from './util/util.js?v1';
-import { ControleAba } from './util/util.js?v1';
-import { ObjetoDOM } from './util/form.js?v1';
-import { ModuloSistemaDOM } from './util/form.js?v1';
-import { ConjuntoDOM } from './util/form.js?v1';
-import { FichasDOM } from './util/form.js?v1';
-import { ComboFiltroDOM } from './util/form.js?v1';
-import { CampoDOM } from './util/form.js?v1';
-import { CampoArquivo } from './util/form.js?v1';
-import { CNPJCPF } from './util/form.js?v1';
-import { IntervaloDOM } from './util/form.js?v1';
-import { NavigationMenu } from './util/menu.js';
+import { Modal } from './util/util.js?v2';
+import { ControleAba } from './util/util.js?v2';
+import { ObjetoDOM, ModuloSistemaDOM } from './util/form.js?v2';
+import { ConjuntoDOM } from './util/form.js?v2';
+import { FichasDOM } from './util/form.js?v2';
+import { ComboFiltroDOM } from './util/form.js?v2';
+import { CampoDOM } from './util/form.js?v2';
+import { CampoArquivo } from './util/form.js?v2';
+import { CNPJCPF } from './util/form.js?v2';
+import { IntervaloDOM } from './util/form.js?v2';
+import { NavigationMenu } from './util/menu.js?v2';
 
 let ehCelular = window.innerWidth <= 768;
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
@@ -776,6 +775,12 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 		let anoFiscal = Number(this.getComponente("ano").getValor());
 		if (new Date(data).getFullYear() != anoFiscal) {
 			throw new Error ("O ano do lançamento deve ser igual ao ano fiscal registrado");
+		}
+		if (lancamento.debitos.find(d => !d.valor)) {
+			throw new Error("É necessário definir valor para todos os débitos");
+		}
+		if (lancamento.creditos.find(c => !c.valor)) {
+			throw new Error("É necessário definir valor para todos os créditos");
 		}
 		const totalDebito = lancamento.debitos.reduce((sum, item) => sum + Number(item.valor), 0);
 		const totalCredito = lancamento.creditos.reduce((sum, item) => sum + Number(item.valor), 0);
@@ -1764,10 +1769,19 @@ async function acaoAoClicar(event, elementoClicado) {
 		contabilidade.refazerLancamentos();
 	}
 	if (linkDestino === "#consolidarAno") {
-		alert("em elaboração");
+		consolidarAno();
 	}
 	if (linkDestino === "#sobre") {
 		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.  Em desenvolvimento por Myrko I. da Graça"); 
+	}
+}
+function consolidarAno() {
+	let ano = prompt("Coloque o ano para consolidação");
+	let anoAtual = new Date().getFullYear();
+	if (Number(ano) >= anoAtual) {
+		new Modal().mostrar("Consolidar Ano", "Ano deve ser menor que o ano atual");
+	} else {
+		new Modal().mostrar("Consolidar Ano", "Em elaboração");
 	}
 }
 const meuMenu = new NavigationMenu(

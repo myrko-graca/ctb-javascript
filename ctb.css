@@ -13,10 +13,7 @@
 	z-index: 9999 !important;
 }
 @media (max-width: 768px) {
-	nav button {
-		font-size: x-small!important;
-	}
-	body {
+	nav button[data-aba] {
 		font-size: x-small!important;
 	}
 	.aba {

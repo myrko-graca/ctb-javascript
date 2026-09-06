@@ -1,3 +1,4 @@
+console.log("Componentes úteis desenvolvido por Myrko I. da Graça");
 export class Util {
 	constructor() {
 		this.nomeProjeto = window.location.pathname.split('/')[1];
