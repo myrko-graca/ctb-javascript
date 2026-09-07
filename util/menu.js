@@ -21,7 +21,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		}
 		.logo {
 		  color: #ffffff;
-		  font-size: 1.3rem;
+		  font-size: 1.5rem;
 		  font-weight: bold;
 		  text-decoration: none;
 		}
@@ -104,6 +104,9 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			justify-content: space-between;
 			align-items: center;
 			height: 50px;
+		  }
+		  .logo {
+		    font-size: 1.3rem;
 		  }
 		  #nav {
 			position: absolute;

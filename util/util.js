@@ -422,7 +422,7 @@ export class Modal {
 			document.head.appendChild(estilo);
 			const dialog = document.createElement('div');
 			dialog.innerHTML = `
-				<dialog id="meuModal" style="max-width: 70%;">
+				<dialog id="meuModal" style="max-width: 80%;">
 					<h3 id="modalTitulo" style="margin-top: 0;"></h3>
 					<hr>
 					<p id="modalConteudo"></p>
@@ -434,8 +434,8 @@ export class Modal {
 	}
 	mostrar(titulo, conteudo) {
 		document.getElementById('modalTitulo').innerText = titulo;
-		document.getElementById('modalConteudo').innerText = conteudo;
+		document.getElementById('modalConteudo').innerHTML = conteudo;
 		document.getElementById('meuModal').showModal();
+		document.getElementById('meuModal').scrollTo({ top: 0, behavior: 'instant' });
 	}	
 }
-

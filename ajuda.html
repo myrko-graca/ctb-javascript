@@ -1,0 +1,32 @@
+<html lang="pt-br" class="notranslate" translate="no">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Ajuda da Contabilidade Simples em Javascript</title>
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwZjJmNSIvPgogIDxyZWN0IHg9IjYiIHk9IjIwIiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjYmRjM2M3IiByeD0iMSIvPgogIDxyZWN0IHg9IjEzIiB5PSIxNCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IiM5NWExYTYiIHJ4PSIxIi8+CiAgPHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iMTgiIHg9IjIwIiB5PSI4IiBmaWxsPSIjN2Y4YzhkIiByeD0iMSIvPgogIDxwYXRoIGQ9Ik00IDI2IEwxMCAxOCBMMTYgMjIgTDI4IDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNMjIgOCBMMjggOCBMMjggMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+" />
+	</head>
+	<body>
+		<h3>Conceitos Gerais</h3>
+		<p>Ajuda para utilizar o Sistema de Contabilidade Simples em Javascript.  Este sistema é feito totalmente com código que roda no browser, não existindo comunicação com nenhum servidor após o carregamento.  O sistema utilizar arquivos para gravar os dados e posteriormente ler, sendo que os arquivos são salvos exclusivamente no cliente, ocasionando ser desnecessário fazer qualquer tipo de login.  Observa-se ainda que o sistema está adaptado para utilização no celular.</p>
+		<p>Para iniciar a utilização do sistema, é interessante carregar os dados de teste (menu "arquivo/abrir teste"), que contém informações que são usadas para entendimento básico do sistema, mas pode servir também como base do seu próprio plano de contas.</p>
+		<h3>Ativo, Passivo, Receita, Custo e Despesa</h3>
+		<p>Estas abas são referentes ao plano de contas, que devem ser construídas de acordo com definições próprias.  É possivel indicar se a conta é sitética (isto é, não pode haver lançamento diretamente para ela) e também criar subgrupos.  É interessante observar que ao clicar no ícone no lado esquerdo de cada subgrupo de contas (&#x26F6;) expande todo o subgrupo, facilitando o preenchimento a partir do isolamento das informações.</p>
+		<h3>Resumo</h3>
+		<p>Exibe todas as contas com numeração completa.  Incialmente mostra apenas as contas que tenham valor, mas é possível mostrar todo o plano de conta ao clicar no respectivo botão</p>
+		<h3>Lançamentos</h3>
+		<p>Parametriza, efetua e exibe os lançamentos contábeis.  Contém as seguintes abas:</p>
+		<h4>Configurações</h4>
+		<p>A primeira configuração é o controle de quantidade.  Ao definir as contas de controle de quantidade, é exigido no lançamento que seja definida a quantidade, e também é possível calcular o valor baseado nos lançamentos de compra anteriores utilizando o método FIFO (first in first out).  Obs.: As contas definidas podem ser as superiores, e funcionará para todas as contas filhas, como por exemple definindo a conta "estoque".</p>
+		<p>Na segunda configuração, são definidas contas para depreciação e aquelas relacionadas para indicar o valor depreciado, indicando a periodicidade e taxa de depreciação.  Ao efetuar lançamento, é possível calcular automaticamente o valor depreciado.</p>
+		<p>Na terceira configuração, são atribuídos os atributos para calcular o Simples Nacional (caso optante).  A partir dessas informações, ao efetuar lançamento, o valor é calculado automaticamente.</p>
+		<h4>Tipos</h4>
+		<p>Aqui são definidos tipos de lançamentos para facilitar o registro na efetivação do lançamento.  Para cada tipo, são indicadas as possíveis contas para débito e para crédito (é possível definir qualquer conta que as contas filhas são consideradas automaticamente).  Dessa forma, fica mais fácil os lançamentos contábeis se estruturado de forma adequada para sua empresa.</p>
+		<h4>Efetuar</h4>
+		<p>Aqui é efetuado o lançamento contábil, podendo escolher qualquer conta "não sintética".  Utilizando o tipo, é possível restringir as contas de débito e crédito que podem ser usadas, com a finalidade de facilitar o lançamento contábil.</p>
+		<h4>Visualizar</h4>
+		<p>Aqui é possível visualizar os lançamentos contábeis realizados, permitindo filtrar os resultados a partir da conta, se for de débito ou crédito, e ainda em uma determinada data</p>
+		<h4>Apuração de Resultado</h4>
+		<p>Na primeira aba, mostra a conta transitória de apuração de resultado e permite indicar a conta de lucro/prejuízo</p>
+		<p>Na segunda aba, permite realizar a apuração de resultado (mensal) e permite relatórios de outros tipos (trimestral, anual, etc.), sendo necessário nesse caso marcar a opção "Relatório" para trazer as informações ignorando as apurações intermediárias.  Após buscar os lançamentos relativos ao período definido, é exibido o ARE do período, e assim permite efetuar a apuração do resultado ao clicar do referente botão, realizando os lançamentos que irão "zerar" as contas de resultados, utilizando a conta transitória.</p>
+	</body>
+</html>

@@ -1,14 +1,14 @@
-import { Modal } from './util/util.js?v3';
-import { ControleAba } from './util/util.js?v3';
-import { ObjetoDOM, ModuloSistemaDOM } from './util/form.js?v3';
-import { ConjuntoDOM } from './util/form.js?v3';
-import { FichasDOM } from './util/form.js?v3';
-import { ComboFiltroDOM } from './util/form.js?v3';
-import { CampoDOM } from './util/form.js?v3';
-import { CampoArquivo } from './util/form.js?v3';
-import { CNPJCPF } from './util/form.js?v3';
-import { IntervaloDOM } from './util/form.js?v3';
-import { NavigationMenu } from './util/menu.js?v3';
+import { Modal } from './util/util.js?v4';
+import { ControleAba } from './util/util.js?v4';
+import { ObjetoDOM, ModuloSistemaDOM } from './util/form.js?v4';
+import { ConjuntoDOM } from './util/form.js?v4';
+import { FichasDOM } from './util/form.js?v4';
+import { ComboFiltroDOM } from './util/form.js?v4';
+import { CampoDOM } from './util/form.js?v4';
+import { CampoArquivo } from './util/form.js?v4';
+import { CNPJCPF } from './util/form.js?v4';
+import { IntervaloDOM } from './util/form.js?v4';
+import { NavigationMenu } from './util/menu.js?v4';
 
 let ehCelular = window.innerWidth <= 768;
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
@@ -1751,7 +1751,7 @@ async function acaoAoClicar(event, elementoClicado) {
 		salvarComJanelaNativa(str);
 	}
 	if (linkDestino === "#contas.json") {
-		fetch("dados/contas.json")
+		fetch("dados/contas.json?v4")
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
@@ -1771,16 +1771,25 @@ async function acaoAoClicar(event, elementoClicado) {
 	if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	}
+	if (linkDestino === "#ajuda") {
+		fetch("ajuda.html?v4")
+			.then(resposta => resposta.text())
+			.then(html => {
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(html, 'text/html');
+				let textoAjuda = doc.body.innerHTML;
+				textoAjuda += "<br><a href='ajuda.html' target='_blank'>Abrir ajuda em outra janela</a>";
+				new Modal().mostrar("Ajuda da Contabilidade Simples em Javascript", textoAjuda); 
+			}).catch(erro => console.error('Erro ao ler o help:', erro)
+		);
+	}
 	if (linkDestino === "#sobre") {
-		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.\nEm desenvolvimento por Myrko I. da Graça"); 
+		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça"); 
 	}
 }
 function consolidarAno() {
-	let ano = prompt("Coloque o ano para consolidação");
-	let anoAtual = new Date().getFullYear();
-	if (Number(ano) >= anoAtual) {
-		new Modal().mostrar("Consolidar Ano", "Ano deve ser menor que o ano atual");
-	} else {
+	let ano = new Date().getFullYear() - 1;
+	if (confirm("Confirma a consolidação até o ano de " + ano + "?  Lembre de salvar os dados atuais com outro nome antes de efetivar a consolidação dos lançamentos.")) {
 		new Modal().mostrar("Consolidar Ano", "Em elaboração");
 	}
 }
