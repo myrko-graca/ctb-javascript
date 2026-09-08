@@ -1408,6 +1408,45 @@ class SimplesNacional extends ObjetoDOM {
 		this.getComponente("aliquotaEfetiva").setValor(aliquotaEfetiva.toFixed(2));
 	}
 }
+class FolhaPagamento extends ObjetoDOM {
+	constructor() {
+		super(null, "folhaPagamento", {
+			titulo: "Folha de Pagamento",
+			qtdColunas: 4
+		});
+		this.add(new ComboFiltroDOM(null, "contaDespesaSalarios", {
+			titulo: "Conta de despesa com salários", 
+			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+		this.add(new Funcionarios());
+	}
+	atualizarCombos() {
+		//let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
+		//this.getComponente("contaOrigem").setOpcoes(listaContas);
+		//this.getComponente("contaValor").setOpcoes(listaContas);
+	}
+}
+class Funcionarios extends FichasDOM {
+	constructor() {
+		super(null, "funcionarios", {
+			titulo: "Funcionarios",
+			qtdColunas: 4,
+			spanV: 4
+		});
+		this.add(new CampoDOM(null, "nome", {
+			titulo: "Nome", 
+			spanV: 2,
+			regras: {obrigatorio: true},
+		}));
+		this.add(new ComboFiltroDOM(null, "conta", {
+			titulo: "Conta", 
+			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+	}
+}
+
 class VisualizarLancamentos extends ObjetoDOM {
 	constructor(efetuarLancamentoContabil) {
 		let elemento = document.getElementById("visualizarLancamentos");
@@ -1604,12 +1643,14 @@ class LancamentoContabil extends ObjetoDOM {
 		this.add(efetuarLancamentoContabil);
 		let visualizarLancamentos = new VisualizarLancamentos(efetuarLancamentoContabil);
 		this.add(visualizarLancamentos);
-		let contasQuantidade = new ContasRequeremQuantidade();
-		this.add(contasQuantidade);
+		let folhaPagamento = new FolhaPagamento();
+		this.add(folhaPagamento);
 		let contasDepreciacao = new ContasDepreciacao();
 		this.add(contasDepreciacao);
 		let simplesNacional = new SimplesNacional();
 		this.add(simplesNacional);
+		let contasQuantidade = new ContasRequeremQuantidade();
+		this.add(contasQuantidade);
 		let sistema = this.getModuloSistema();
 		this.abaLancamentos.aoAlterar = (aba) => {
 			if (aba == "abaEfetuarLancamento") {
