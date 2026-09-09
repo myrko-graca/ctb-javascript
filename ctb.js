@@ -44,9 +44,9 @@ class ContaCTB extends ObjetoDOM {
 			subtipo: "checkbox",
 		}));
 	}
-	setValor(valor) {
+	setValor(valor, forcado) {
 		//Se for o primeiro nível, não pode mudar o código nem se é Sintética
-		if (this.pai.getTipo() == "modulo") {
+		if (this.pai.getTipo() == "modulo" && !forcado) {
 			if (!valor) {
 				valor = {};
 			}
@@ -60,15 +60,15 @@ class ContaCTB extends ObjetoDOM {
 	}
 	limpar() {
 		//Se for o primeiro nível, não deixa limpar
+		let valor = {};
 		if (this.pai.getTipo() == "modulo") {
-			valor = {};
 			valor.codigo = this.getComponente("codigo").getValor();
 			valor.sintetica = this.getComponente("sintetica").getValor();
 			valor.descricao = this.getComponente("descricao").getValor();
 		}
 		super.limpar();
 		if (this.pai.getTipo() == "modulo") {
-			this.setValor(valor);
+			this.setValor(valor, true);
 		}
 	}
 	init() {
@@ -335,9 +335,9 @@ class ApuracaoResultado extends ContaCTB {
 		}));
 		this.getComponente("contaLucroPrejuizo").setOpcoes(opcoes);
 	}
-	setValor(valor) {
+	setValor(valor, forcado) {
 		this.preencherCombos();
-		super.setValor(valor);
+		super.setValor(valor, forcado);
 	}
 	init() {
 		//Não realiza o init de contaCTB
@@ -1414,36 +1414,166 @@ class FolhaPagamento extends ObjetoDOM {
 			titulo: "Folha de Pagamento",
 			qtdColunas: 4
 		});
-		this.add(new ComboFiltroDOM(null, "contaDespesaSalarios", {
-			titulo: "Conta de despesa com salários", 
+		this.add(new ComboFiltroDOM(null, "contaSalarios", {
+			titulo: "Salários", 
 			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaSalarios", {
+			titulo: "Despesa com salários", 
+			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaHorasExtras", {
+			titulo: "Despesa com horas extras", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaAdicionalNoturno", {
+			titulo: "Despesa com com adicional noturno", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaFGTSARecolher", {
+			titulo: "FGTS a recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFGTS", {
+			titulo: "Despesa com FGTS", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaProvisao13o", {
+			titulo: "Provisão de 13º Salário", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesa13o", {
+			titulo: "Despesas com Provisão de 13º", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaProvisaoFeriasTerco", {
+			titulo: "Provisão de Férias/Terço", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFeriasTerco", {
+			titulo: "Despesas com Provisão de Férias/Terço", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaProvisaoFGTSARecolher", {
+			titulo: "FGTS Prov. Férias/Terço/13º a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFGTSProvisoes", {
+			titulo: "Despesas com FGTS sobre Provisões", 
 			spanV: 2,
 		}));
 		this.add(new Funcionarios());
 	}
+	aoModificar(ultimo) {
+		super.aoModificar(this);
+		if (ultimo == this.getComponente("contaSalarios")) {
+			this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
+		}
+	}
 	atualizarCombos() {
-		//let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
-		//this.getComponente("contaOrigem").setOpcoes(listaContas);
-		//this.getComponente("contaValor").setOpcoes(listaContas);
+		let listaContasPassivo = this.pai.listaContas.filter(lc => lc.value.startsWith("2."));
+		let listaContasDespesas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
+		this.getComponente("contaSalarios").setOpcoes(listaContasPassivo);
+		listaContasPassivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
+		this.getComponente("contaDespesaSalarios").setOpcoes(listaContasDespesas);
+		this.getComponente("contaDespesaHorasExtras").setOpcoes(listaContasDespesas);
+		this.getComponente("contaDespesaAdicionalNoturno").setOpcoes(listaContasDespesas);
+		this.getComponente("contaFGTSARecolher").setOpcoes(listaContasPassivo);
+		this.getComponente("contaDespesaFGTS").setOpcoes(listaContasDespesas);
+		this.getComponente("contaProvisao13o").setOpcoes(listaContasPassivo);
+		this.getComponente("contaDespesa13o").setOpcoes(listaContasDespesas);
+		this.getComponente("contaProvisaoFeriasTerco").setOpcoes(listaContasPassivo);
+		this.getComponente("contaDespesaFeriasTerco").setOpcoes(listaContasDespesas);
+		this.getComponente("contaProvisaoFGTSARecolher").setOpcoes(listaContasPassivo);
+		this.getComponente("contaDespesaFGTSProvisoes").setOpcoes(listaContasDespesas);
+		this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
+	}
+	setValor(valor) {
+		this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
+		super.setValor(valor);
+	}
+}
+class FeriasFuncionario extends ConjuntoDOM {
+	constructor() {
+		super(null, "ferias", {
+			titulo: "Férias",
+			qtdColunas: 2,
+			spanV: 3,
+			regras: {campoChave: "inicio"},
+			ordem: "inicio",
+			somentePrimeiroLabel: true
+		});
+		this.add(new IntervaloDOM(null, "periodo", {
+			titulo: "Período", 
+			spanV: 2,
+			regras: {obrigatorio: true},
+		}));
 	}
 }
 class Funcionarios extends FichasDOM {
 	constructor() {
 		super(null, "funcionarios", {
-			titulo: "Funcionarios",
-			qtdColunas: 4,
-			spanV: 4
+			titulo: "Funcionários",
+			qtdColunas: 6,
+			spanV: 4,
+			regras: {campoChave: "codigo"},
+			ordem: "nome",
 		});
-		this.add(new CampoDOM(null, "nome", {
-			titulo: "Nome", 
-			spanV: 2,
-			regras: {obrigatorio: true},
-		}));
-		this.add(new ComboFiltroDOM(null, "conta", {
+		this.add(new ComboFiltroDOM(null, "contaPassivo", {
 			titulo: "Conta", 
 			regras: {obrigatorio: true},
+			spanV: 3,
+		}));
+		this.add(new CampoDOM(null, "nome", {
+			titulo: "Nome", 
+			spanV: 3,
+			regras: {obrigatorio: true},
+		}));
+		this.add(new CampoDOM(null, "salarioBase", {
+			titulo: "Salário base", 
+			regras: {obrigatorio: true},
+			subtipo: "number",
 			spanV: 2,
 		}));
+		this.add(new CampoDOM(null, "dependentes", {
+			titulo: "Dependentes", 
+			regras: {obrigatorio: true},
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "utilizaVT", {
+			titulo: "Utiliza VT?", 
+			subtipo: "checkbox",
+		}));
+		this.add(new CampoDOM(null, "custoRealVT", {
+			titulo: "Custo real do VT", 
+			subtipo: "number",
+			spanV: 2,
+		}));
+		this.add(new CampoDOM(null, "jornadaMensal", {
+			titulo: "Jornada mensal", 
+			atributos: {title: "Quantidade de horas mensais trabalhadas"},
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "qtdHorasNoturnas", {
+			titulo: "Horas noturnas", 
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "qtdHorasExtras", {
+			titulo: "Horas extras", 
+			subtipo: "number",
+		}));
+		this.add(new FeriasFuncionario());
+	}
+	atualizarCombos(listaContasNaoSinteticas) {
+		let contaSalario = this.pai.getComponente("contaSalarios").getValor();
+		if (contaSalario) {
+			let listaContasSalarios = listaContasNaoSinteticas.filter(lc => lc.value.startsWith(contaSalario));
+			this.getComponente("contaPassivo").setOpcoes(listaContasSalarios);
+		} else {
+			this.getComponente("contaPassivo").setOpcoes(listaContasNaoSinteticas);
+		}
 	}
 }
 
@@ -1745,6 +1875,7 @@ class LancamentoContabil extends ObjetoDOM {
 		this.getComponente("contasRequeremQuantidade").atualizarCombos();
 		this.getComponente("contasDepreciacao").atualizarCombos();
 		this.getComponente("simplesNacional").atualizarCombos();
+		this.getComponente("folhaPagamento").atualizarCombos();
 	}
 	focar() {
 		super.focar();
@@ -1774,24 +1905,24 @@ async function abrirComJanelaNativa() {
 }
 
 let contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
+document.body.hidden = false;
 console.log("contabilidade", contabilidade);
 
-async function acaoAoClicar(event, elementoClicado) {
-	const textoDoLink = elementoClicado.textContent;
-	const linkDestino = elementoClicado.getAttribute('href');
-	console.log(`Você clicou no menu: ${textoDoLink} que aponta para: ${linkDestino}`);
+async function executaAcao(linkDestino) {
 	if (linkDestino === "#abrir") {
 		let obj = await abrirComJanelaNativa();
 		console.log("abrir", obj);
 		contabilidade.setValor(obj);
-	}
-	if (linkDestino === "#salvar") {
+	} else if (linkDestino === "#salvar") {
 		let conteudo = contabilidade.getValor();
 		console.log("conteudo", conteudo);
 		let str = JSON.stringify(conteudo);
 		salvarComJanelaNativa(str);
-	}
-	if (linkDestino === "#contas.json") {
+	} else if (linkDestino === "#novo") {
+		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
+			contabilidade.limpar();
+		}
+	} else if (linkDestino === "#contas.json") {
 		fetch("dados/contas.json?v4")
 			.then(resposta => resposta.json())
 			.then(obj => {
@@ -1799,20 +1930,16 @@ async function acaoAoClicar(event, elementoClicado) {
 				contabilidade.setValor(obj);
 			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 		);
-	}
-	if (linkDestino === "#validar") {
+	} else if (linkDestino === "#validar") {
 		let lista = contabilidade.validar();
 		if (lista.length == 0) {
 			new Modal().mostrar("Validação", "Validação não encontrou erros");
 		}
-	}
-	if (linkDestino === "#refazerLancamentos") {
+	} else if (linkDestino === "#refazerLancamentos") {
 		contabilidade.refazerLancamentos();
-	}
-	if (linkDestino === "#consolidarAno") {
+	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
-	}
-	if (linkDestino === "#ajuda") {
+	} else if (linkDestino === "#ajuda") {
 		fetch("ajuda.html?v4")
 			.then(resposta => resposta.text())
 			.then(html => {
@@ -1823,10 +1950,19 @@ async function acaoAoClicar(event, elementoClicado) {
 				new Modal().mostrar("Ajuda da Contabilidade Simples em Javascript", textoAjuda); 
 			}).catch(erro => console.error('Erro ao ler o help:', erro)
 		);
-	}
-	if (linkDestino === "#sobre") {
+	} else if (linkDestino === "#sobre") {
 		new Modal().mostrar("Contabilidade Simples", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça"); 
 	}
+}
+const hash = window.location.hash;
+if (hash) {
+	executaAcao(hash);
+}
+async function acaoAoClicar(event, elementoClicado) {
+	const textoDoLink = elementoClicado.textContent;
+	const linkDestino = elementoClicado.getAttribute('href');
+	console.log(`Você clicou no menu: ${textoDoLink} que aponta para: ${linkDestino}`);
+	executaAcao(linkDestino);
 }
 function consolidarAno() {
 	let ano = new Date().getFullYear() - 1;

@@ -29,11 +29,12 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		  display: flex;
 		  list-style: none;
 		  margin: 0;
-		  padding: 0;
+		  padding: 20px;
 		  gap: 1rem;
 		}
 		.menu a {
 		  display: block;
+		  font-size: large;
 		  padding: 1.3rem 1rem;
 		  color: #cccccc;
 		  text-decoration: none;
@@ -79,7 +80,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		}
 		.dropdown-menu li a {
 		  padding: 0.8rem 1rem;
-		  font-size: 0.9rem;
+		  font-size: large;
 		  border-bottom: 1px solid #3a3a3a;
 		}
 		.dropdown-menu li:last-child a {
@@ -98,6 +99,12 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			transform: translateY(0);
 		  }
 		}
+		#nav {
+			position: absolute;
+			right: 20px;
+			top: 50%;
+			transform: translateY(-50%);
+		}
 		@media (max-width: 768px) {
 		  .header {
 			display: flex;
@@ -113,6 +120,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			width: 0;
 			height: 0;
 			visibility: hidden;
+			transform: revert!important;
 		  }
 		  #btn-mobile {
 			display: flex;
@@ -175,6 +183,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			visibility: hidden;
 			transition: height 0.4s ease-in-out, opacity 0.3s, visibility 0.4s;
 			z-index: 1000;
+			padding: 0;
 		  }
 		  #nav.active .menu {
 			height: calc(100vh - 70px);

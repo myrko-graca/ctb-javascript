@@ -371,7 +371,7 @@ export class ConjuntoDOM extends ObjetoDOM {
 		if (valor && !Array.isArray(valor)) {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
 		}
-		if (this.obj.ordem) {
+		if (valor && this.obj.ordem) {
 			valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
 		}
 		if (valor.length > 0) {
@@ -681,7 +681,7 @@ export class FichasDOM extends ObjetoDOM {
 		if (valor && !Array.isArray(valor)) {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
 		}
-		if (this.obj.ordem) {
+		if (valor && this.obj.ordem) {
 			valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
 		}
 		if (valor.length > 0) {
@@ -816,6 +816,12 @@ export class ComboFiltroDOM extends ObjetoDOM {
 		if (this.obj.opcoes) {
 			this.setOpcoes(this.obj.opcoes);
 		}
+	}
+	init() {
+		super.init();
+		this.cs.elemento.addEventListener("change", (e) => {
+			this.aoModificar(e);
+		});
 	}
 	setOpcoes(opcoes) {
 		this.cs.setOptions(opcoes);

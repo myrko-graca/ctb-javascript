@@ -204,11 +204,6 @@ export class CustomSelect {
 		this.selectedValue = null;
 		this.label.textContent = this.placeholder;
 		this.clearBtn.style.display = 'none'; 
-
-		const event = new CustomEvent('change', { 
-			detail: { value: null, text: '' } 
-		});
-		this.elemento.dispatchEvent(event);
 	}
 	setupEvents() {
 		this.btn.addEventListener('click', (e) => {
@@ -233,6 +228,10 @@ export class CustomSelect {
 			e.stopPropagation();
 			e.preventDefault();
 			this.clearSelection();
+			const event = new CustomEvent('change', { 
+				detail: { value: null, text: '' } 
+			});
+			this.elemento.dispatchEvent(event);
 		});
 		this.input.addEventListener('input', (e) => {
 			this.filterOptions(e.target.value);
@@ -345,7 +344,7 @@ export class CustomSelect {
 			detail: { value: this.selectedValue, text: item.textContent }
 		});
 		this.elemento.dispatchEvent(event);
-		}
+	}
 	closeDropdown() {
 		this.dropdown.style.display = 'none';
 		this.focusedItemIndex = -1; // Limpa foco ao fechar
@@ -366,10 +365,6 @@ export class CustomSelect {
 			this.selectedValue = opcaoEncontrada.value !== undefined ? opcaoEncontrada.value : opcaoEncontrada.text;
 			this.label.textContent = opcaoEncontrada.text;
 			this.clearBtn.style.display = 'block'; // Mostra o botão X de limpar
-			const event = new CustomEvent('change', { 
-				detail: { value: this.selectedValue, text: opcaoEncontrada.text } 
-			});
-			this.elemento.dispatchEvent(event);
 		} else {
 			console.warn(`A opção com o valor "${value}" não foi encontrada no CustomSelect.`);
 		}
