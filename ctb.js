@@ -150,6 +150,7 @@ class ConjuntoContaCTB extends ConjuntoDOM {
 		iconeSpan.style.marginRight = '8px';
 		iconeSpan.title = "Clique para expandir";
 		let descLegenda = legenda.textContent;
+		let corOriginal = document.querySelector(".header").style.backgroundColor;
 		iconeSpan.addEventListener("click", (e) => {
 			event.stopPropagation();
 			const estaExpandido = this.elemento.classList.toggle("tela-cheia");
@@ -157,9 +158,11 @@ class ConjuntoContaCTB extends ConjuntoDOM {
 				let desc = this.pai.getComponente("descricao").getValor();
 				legenda.textContent = descLegenda + " (" + desc + ")";
 				iconeSpan.title = "Clique para reduzir";
+				document.querySelector(".header").style.backgroundColor = "white";
 			} else {
 				legenda.textContent = descLegenda;
 				iconeSpan.title = "Clique para expandir";
+				document.querySelector(".header").style.backgroundColor = corOriginal;
 			}
 			legenda.prepend(iconeSpan);
 			this.elemento.scrollIntoView({
