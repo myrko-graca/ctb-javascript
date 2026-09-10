@@ -2,8 +2,8 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link rel="stylesheet" href="ctb.css?v5">
-		<script type="module" src="ctb.js?v5"></script>
+		<link rel="stylesheet" href="ctb.css?v6">
+		<script type="module" src="ctb.js?v6"></script>
 		<title>Contabilidade Simples em Javascript</title>
 		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwZjJmNSIvPgogIDxyZWN0IHg9IjYiIHk9IjIwIiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjYmRjM2M3IiByeD0iMSIvPgogIDxyZWN0IHg9IjEzIiB5PSIxNCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IiM5NWExYTYiIHJ4PSIxIi8+CiAgPHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iMTgiIHg9IjIwIiB5PSI4IiBmaWxsPSIjN2Y4YzhkIiByeD0iMSIvPgogIDxwYXRoIGQ9Ik00IDI2IEwxMCAxOCBMMTYgMjIgTDI4IDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNMjIgOCBMMjggOCBMMjggMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+" />
 	</head>
@@ -45,6 +45,7 @@
 			<button data-aba="abaReceita">Receita</button>
 			<button data-aba="abaDespesa">Custos e Despesas</button>
 			<button data-aba="abaResumo">Resumo</button>
+			<button data-aba="abaParametros">Parametrização</button>
 			<button data-aba="abaLancamento">Lançamentos</button>
 			<button data-aba="abaApuracaoResultado">Apuração de Resultado</button>
 			<button data-aba="abaErros" hidden>Erros</button>
@@ -74,19 +75,44 @@
 			<div id="resumo">
 			</div>
 		</div>
+		<div id="abaParametros" class="aba" style="padding: 0px">
+			<nav class="navAba">
+				<button data-aba="abaBasica" data-ativo>Basico</button>
+				<button data-aba="abaFolha">Pessoal</button>
+				<button data-aba="abaMaquinasEquipamentos">Máquinas e Equipamentos</button>
+				<button data-aba="abaEstoque">Estoque</button>
+				<button data-aba="abaMaterialEscritorio">Material Escritório</button>
+			</nav>
+			<div id="abaBasica" class="aba">
+				<div id="parametros">
+				</div>
+			</div>
+			<div id="abaFolha" class="aba">
+				<fieldset id="folhaPagamento">
+				</fieldset>
+			</div>
+			<div id="abaMaquinasEquipamentos" class="aba">
+				<fieldset id="maquinasEquipamentos">
+				</fieldset>
+			</div>
+			<div id="abaEstoque" class="aba">
+				<fieldset id="estoque">
+				</fieldset>
+			</div>
+			<div id="abaMaterialEscritorio" class="aba">
+				<fieldset id="materialEscritorio">
+				</fieldset>
+			</div>
+		</div>
 		<div id="abaLancamento" class="aba" style="padding: 0px">
 			<nav class="navAba">
-				<button data-aba="abaConfiguracoes" data-ativo>Configuração</button>
-				<button data-aba="abaTipoLancamentoContabil">Tipos</button>
+				<button data-aba="abaTipoLancamentoContabil" data-ativo>Tipos</button>
 				<button data-aba="abaEfetuarLancamento">Efetuar</button>
 				<button data-aba="abaVisualizarLancamentos">Visualizar</button>
 				<button data-aba="abaListaQuantidade">Quantidades</button>
 				<button data-aba="abaDepreciacao">Depreciações</button>
 			</nav>
-			<div id="abaConfiguracoes" class="aba">
-				<fieldset id="lancamentos">
-				</fieldset>
-			</div>
+			<div id="lancamentos"></div>
 			<div id="abaTipoLancamentoContabil" class="aba">
 				<fieldset id="tipoLancamentoContabil">
 				</fieldset>
@@ -107,6 +133,7 @@
 				<div id="depreciacoes"></div>
 			</div>			
 		</div>
+		
 		<div id="abaApuracaoResultado" class="aba" style="padding: 0px">
 			<nav class="navAba">
 				<button data-aba="abaContaApuracao" data-ativo>Conta de Apuração</button>

@@ -185,3 +185,100 @@ class CalculadoraFolhaContabil {
         return linhas.join("\n");
     }
 }
+////////////////////////////////////////////////////////////////////////////////////////
+// =========================================================================
+// 🚀 BATERIA DE TESTES INTEGRADOS: DEPARTAMENTO PESSOAL E CONTABILIDADE
+// =========================================================================
+
+const coreFolha = new CalculadoraFolhaContabil();
+
+console.log("%c DRIVER DE TESTES: INICIANDO VALIDAÇÃO DE FOLHA, ENCARGOS E PROVISÕES 2026 ", "background: #1e1e1e; color: #00ff7f; font-size: 14px; font-weight: bold;");
+
+// -------------------------------------------------------------------------
+// CENÁRIO 1: MÊS COMUM (Operação Padrão com Acúmulo de Provisões)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 1: MÊS COMUM | COM ADICIONAIS (HE + AN) | ACUMULANDO PROVISÕES");
+console.log("------------------------------------------------------------");
+const f1 = coreFolha.processarFolha({
+    salarioBase: 4500.00,
+    jornadaMensal: 220,
+    qtdHorasExtras: 15,     // 15 horas extras no mês
+    qtdHorasNoturnas: 30,   // 30 horas noturnas no mês
+    dependentes: 1,
+    utilizaVT: true,
+    custoRealVT: 320.00,    // Descontará o limite de 6% (R$ 270) pois é menor que o custo real
+    isFerias: false,
+    is13Salario: false
+});
+console.log(f1.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 2: FUNCIONÁRIO GOZANDO FÉRIAS (Metade do Mês / 15 dias)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 2: GOZO DE FÉRIAS (15 DIAS) | BAIXA DA PROVISÃO DO PASSIVO");
+console.log("------------------------------------------------------------");
+const f2 = coreFolha.processarFolha({
+    salarioBase: 6000.00,
+    dependentes: 0,
+    utilizaVT: false, // Sem VT no mês de férias
+    isFerias: true,
+    diasFerias: 15,   // Recebe 15 dias de salário + 15 dias de férias + 1/3 constitucional
+    is13Salario: false
+});
+console.log(f2.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 3: PAGAMENTO DE 13º SALÁRIO INTEGRAL (Fim de Ano)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 3: QUITAÇÃO DE 13º SALÁRIO INTEGRAL (12/12) | BAIXA DO PASSIVO");
+console.log("------------------------------------------------------------");
+const f3 = coreFolha.processarFolha({
+    salarioBase: 3800.00,
+    dependentes: 2,
+    utilizaVT: true,
+    custoRealVT: 150.00,   // O custo real (R$ 150) é menor que 6% (R$ 228), descontará R$ 150
+    isFerias: false,
+    is13Salario: true,
+    mesesProporcionais13: 12 // 13º Integral adicionado ao bruto
+});
+console.log(f3.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 4: SALÁRIO ACIMA DO TETO DO INSS (Validação de Trava Máxima)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 4: EXECUTIVO DE ALTO ESCALÃO | SALÁRIO ACIMA DO TETO DO INSS E IRRF SECO");
+console.log("------------------------------------------------------------");
+const f4 = coreFolha.processarFolha({
+    salarioBase: 15000.00, // Muito acima do teto de R$ 8.475,55
+    dependentes: 0,
+    utilizaVT: false,
+    isFerias: false,
+    is13Salario: false
+});
+console.log(f4.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 5: SALÁRIO COM ISENÇÃO DE IMPOSTO DE RENDA (Regra 2026)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 5: SALÁRIO ATÉ O LIMITE DE ISENÇÃO DO IRRF (< R$ 5.000,00)");
+console.log("------------------------------------------------------------");
+const f5 = coreFolha.processarFolha({
+    salarioBase: 2800.00, // Isento de IRRF por lei, mas paga INSS proporcional
+    dependentes: 1,
+    utilizaVT: false,
+    isFerias: false,
+    is13Salario: false
+});
+console.log(f5.lancamentosContabeis);
+
+
+console.log("\n%c BATERIA DE TESTES DE FOLHA FINALIZADA COM SUCESSO! ", "background: #006400; color: #fff; font-size: 12px; font-weight: bold;");

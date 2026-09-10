@@ -132,3 +132,97 @@ class CalculadoraServicoContabil {
         return texto;
     }
 }
+
+// =========================================================================
+// 🚀 BATERIA DE TESTES INTEGRADOS: PRESTAÇÃO DE SERVIÇOS E RETENÇÕES
+// =========================================================================
+
+const coreServico = new CalculadoraServicoContabil();
+
+console.log("%c DRIVER DE TESTES: INICIANDO VALIDAÇÃO DE PRESTAÇÃO DE SERVIÇOS 2026 ", "background: #111; color: #00bfff; font-size: 14px; font-weight: bold;");
+
+// -------------------------------------------------------------------------
+// CENÁRIO 1: REGIME REGULAR - Serviço sem Retenção com Recebimento à Vista
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 1: REGIME REGULAR | SEM RETENÇÃO NA FONTE | RECEBIMENTO À VISTA");
+console.log("------------------------------------------------------------");
+const s1 = coreServico.processarServico({
+    regimeTributario: 'REGULAR',
+    valorTotalServico: 8000.00,
+    custoServicoPrestado: 2500.00, // CSP (Mão de obra, insumos do projeto)
+    percentualAVista: 100,         // 100% Caixa/Bancos
+    aliquotaIss: 5,                // ISS padrão de 5%
+    sofreRetencaoFonte: false,
+    descontoConcedido: 0
+});
+console.log(s1.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 2: REGIME REGULAR - Serviço Corporativo COM Retenção na Fonte (PIS/COFINS)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 2: REGIME REGULAR | COM RETENÇÃO NA FONTE (PJ para PJ) | A PRAZO");
+console.log("------------------------------------------------------------");
+const s2 = coreServico.processarServico({
+    regimeTributario: 'REGULAR',
+    valorTotalServico: 15000.00,
+    custoServicoPrestado: 4500.00,
+    percentualAVista: 0,           // 100% a prazo (Contas a Receber)
+    aliquotaIss: 3,                // ISS de 3% fixado por lei municipal
+    sofreRetencaoFonte: true,      // Cliente retém PIS/COFINS e paga apenas o líquido
+    descontoConcedido: 0
+});
+console.log(s2.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 3: REGIME REGULAR - Venda de Serviço com Desconto Concedido e Recebimento Misto
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 3: REGIME REGULAR | COM DESCONTO CONCEDIDO | RECEBIMENTO MISTO (50/50)");
+console.log("------------------------------------------------------------");
+const s3 = coreServico.processarServico({
+    regimeTributario: 'REGULAR',
+    valorTotalServico: 12000.00,
+    descontoConcedido: 2000.00,    // Desconto incondicional na Nota Fiscal
+    custoServicoPrestado: 3500.00,
+    percentualAVista: 50,          // 50% à vista, 50% a prazo
+    aliquotaIss: 5,
+    sofreRetencaoFonte: false
+});
+console.log(s3.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 4: SIMPLES NACIONAL - Prestador Inicial (Faixa 1 - Sem Dedução)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 4: SIMPLES NACIONAL | ANEXO III | FAIXA 1 (RBT12 < 180k) | À VISTA");
+console.log("------------------------------------------------------------");
+const s4 = coreServico.processarServico({
+    regimeTributario: 'SIMPLES',
+    valorTotalServico: 6000.00,
+    custoServicoPrestado: 1800.00,
+    percentualAVista: 100,
+    faturamentoAcumulado12Meses: 150000.00 // Alíquota nominal inicial de 6% seca
+});
+console.log(s4.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 5: SIMPLES NACIONAL - Prestador Avançado (Faixa 4 - Progressiva) com Desconto
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 5: SIMPLES NACIONAL | ANEXO III | FAIXA 4 (Progressiva) | COM DESCONTO");
+console.log("------------------------------------------------------------");
+const s5 = coreServico.processarServico({
+    regimeTributario: 'SIMPLES',
+    valorTotalServico: 25000.00,
+    descontoConcedido: 1000.00,
+    custoServicoPrestado: 8000.00,
+    percentualAVista: 0,
+    faturamentoAcumulado12Meses: 1200000.00 // Ativa cálculo de alíquota efetiva alta (Anexo III)
+});
+console.log(s5.lancamentosContabeis);

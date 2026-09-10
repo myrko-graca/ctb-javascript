@@ -142,3 +142,100 @@ class CalculadoraVendaContabil {
         return texto;
     }
 }
+// =========================================================================
+// 🚀 BATERIA AMPLA DE TESTES INTEGRADOS (Venda de Mercadorias / Serviços)
+// =========================================================================
+
+const coreFiscal = new CalculadoraVendaContabil();
+
+console.log("%c DRIVER DE TESTES: INICIANDO VALIDAÇÃO DAS REGRAS FISCAIS 2026 ", "background: #222; color: #bada55; font-size: 14px; font-weight: bold;");
+
+// -------------------------------------------------------------------------
+// CENÁRIO 1: REGIME REGULAR - Comércio Padrão com Recebimento Misto
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 1: REGIME REGULAR | COMÉRCIO | MIX RECEBIMENTO (30% À Vista)");
+console.log("------------------------------------------------------------");
+const c1 = coreFiscal.processarVenda({
+    regimeTributario: 'REGULAR',
+    tipoAtividade: 'COMERCIO',
+    valorTotalItens: 20000.00,
+    custoMercadoriaVendida: 9000.00,
+    percentualAVista: 30, // 30% dinheiro, 70% a prazo
+    aliquotaIcms: 18,     // Destaque de 18% ICMS
+    descontoConcedido: 0
+});
+console.log(c1.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 2: REGIME REGULAR - Indústria com Desconto Concedido e Venda A Prazo
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 2: REGIME REGULAR | INDÚSTRIA | DESCONTO APLICADO | A PRAZO");
+console.log("------------------------------------------------------------");
+const c2 = coreFiscal.processarVenda({
+    regimeTributario: 'REGULAR',
+    tipoAtividade: 'INDUSTRIA',
+    valorTotalItens: 15000.00,
+    descontoConcedido: 1500.00, // Desconto incondicional de 10%
+    custoMercadoriaVendida: 6000.00,
+    percentualAVista: 0,        // 100% a prazo (Duplicatas)
+    aliquotaIcms: 12            // Alíquota interestadual/reduzida de 12%
+});
+console.log(c2.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 3: SIMPLES NACIONAL - Comércio (Faixa 1 - Isento de Dedução)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 3: SIMPLES NACIONAL | COMÉRCIO | FAIXA 1 (RBT12 < 180k) | À VISTA");
+console.log("------------------------------------------------------------");
+const c3 = coreFiscal.processarVenda({
+    regimeTributario: 'SIMPLES',
+    tipoAtividade: 'COMERCIO',
+    valorTotalItens: 5000.00,
+    custoMercadoriaVendida: 2200.00,
+    percentualAVista: 100, // 100% Caixa/Bancos
+    faturamentoAcumulado12Meses: 120000.00 // Alíquota nominal seca de 4%
+});
+console.log(c3.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 4: SIMPLES NACIONAL - Indústria (Faixa 3 - Progressiva) com Desconto
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 4: SIMPLES NACIONAL | INDÚSTRIA | FAIXA 3 (Progressiva) | COM DESCONTO");
+console.log("------------------------------------------------------------");
+const c4 = coreFiscal.processarVenda({
+    regimeTributario: 'SIMPLES',
+    tipoAtividade: 'INDUSTRIA',
+    valorTotalItens: 30000.00,
+    descontoConcedido: 2000.00,
+    custoMercadoriaVendida: 11000.00,
+    percentualAVista: 50,
+    faturamentoAcumulado12Meses: 650000.00 // Ativa os cálculos de alíquota efetiva (Anexo II)
+});
+console.log(c4.lancamentosContabeis);
+
+
+// -------------------------------------------------------------------------
+// CENÁRIO 5: SIMPLES NACIONAL - Prestador de Serviços (Faixa Alta - Anexo III)
+// -------------------------------------------------------------------------
+console.log("\n------------------------------------------------------------");
+console.log("CENÁRIO 5: SIMPLES NACIONAL | PRESTAÇÃO DE SERVIÇOS | FAIXA ELEVADA (CSP)");
+console.log("------------------------------------------------------------");
+const c5 = coreFiscal.processarVenda({
+    regimeTributario: 'SIMPLES',
+    tipoAtividade: 'SERVICO',
+    valorTotalItens: 50000.00,
+    custoMercadoriaVendida: 15000.00, // No texto, este valor assume a conta de 'CSP'
+    percentualAVista: 100,
+    faturamentoAcumulado12Meses: 2100000.00 // Quinta faixa do Simples Nacional
+});
+console.log(c5.lancamentosContabeis);
+
+
+console.log("\n%c BATERIA DE TESTES FINALIZADA COM SUCESSO! ", "background: #006400; color: #fff; font-size: 12px; font-weight: bold;");

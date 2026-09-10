@@ -1,4 +1,4 @@
-import { Util } from './util.js?v5';
+import { Util } from './util.js?v6';
 
 export class ControleTabela {
 	constructor(tb, campos, camposExclusaoComparacao) {
