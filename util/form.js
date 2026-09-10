@@ -1,4 +1,4 @@
-import { CustomSelect } from './customselect.js?v4';
+import { CustomSelect } from './customselect.js?v5';
 console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
 if (!document.querySelector("style[id='estilo_form']")) {
@@ -609,6 +609,77 @@ export class FichasDOM extends ObjetoDOM {
 		btUltimo.className = "btn btn-view";
 		btUltimo.title = "Ir para o último elemento";
 		div.appendChild(btUltimo);
+		if (this.obj.campoLista || this.obj.ordem || this.obj.regras?.campoChave) {
+			let btLista = document.createElement("button");
+			let listaRegistros = null;
+			btLista.addEventListener('click', (e) => {
+				e.stopPropagation(); 
+				if (listaRegistros) {
+					fecharLista();
+					return;
+				}
+				const itensLista = [];
+				let lista = this.getValor();
+				let campo = this.obj.campoLista;
+				if (!campo) {
+					campo = this.obj.ordem;
+				}
+				if (!campo) {
+					campo = this.obj.regras.campoChave;
+				}
+				for (let reg of lista) {
+					itensLista.push(reg[campo]);
+				}
+				listaRegistros = document.createElement("ul");
+				listaRegistros.style.position = "absolute"; 
+				listaRegistros.style.zIndex = "9999";    
+				const rect = btLista.getBoundingClientRect();
+				listaRegistros.style.top = (rect.top + window.scrollY - 8) + "px"; 
+				listaRegistros.style.transform = "translateY(-100%)"; 
+				listaRegistros.style.left = (rect.left + window.scrollX) + "px";
+				listaRegistros.style.maxHeight = "300px";
+				listaRegistros.style.overflowY = "auto";
+				listaRegistros.style.margin = "0";
+				listaRegistros.style.padding = "0";
+				listaRegistros.style.listStyle = "none";
+				listaRegistros.style.background = "#fff";
+				listaRegistros.style.border = "1px solid #ccc";
+				listaRegistros.style.minWidth = "160px";
+				listaRegistros.style.boxShadow = "0px 4px 12px rgba(0,0,0,0.15)";
+				listaRegistros.style.webkitOverflowScrolling = "touch"; 
+				itensLista.forEach(texto => {
+					const li = document.createElement("li");
+					li.textContent = texto;
+					li.style.padding = "14px 16px";
+					li.style.cursor = "pointer";
+					li.style.color = "#333";
+					li.style.borderBottom = "1px solid #eee";
+					li.addEventListener('pointerdown', () => li.style.background = "#f0f0f0");
+					li.addEventListener('pointerup', () => li.style.background = "none");
+					li.addEventListener('pointerleave', () => li.style.background = "none");
+					li.addEventListener("click", (liEvent) => {
+						liEvent.stopPropagation();
+						liEvent.preventDefault();
+						this.setPosicao(itensLista.indexOf(texto));
+						fecharLista();
+					});
+					listaRegistros.appendChild(li);
+				});
+				document.body.appendChild(listaRegistros);
+			});
+			function fecharLista() {
+				if (listaRegistros) {
+					listaRegistros.remove();
+					listaRegistros = null;
+				}
+			}
+			document.addEventListener("click", fecharLista);
+			window.addEventListener("scroll", fecharLista, { passive: true });
+			btLista.textContent = "≣";
+			btLista.className = "btn btn-view";
+			btLista.title = "Mostra lista de registros";
+			div.appendChild(btLista);
+		}
 		this.btRemover = document.createElement("button");
 		this.btRemover.addEventListener('click', (e) => {
 			if (confirm("Confirma remover?")) {
@@ -637,6 +708,12 @@ export class FichasDOM extends ObjetoDOM {
 		let reg = this.lista[this.posicao]
 		super.setValor(reg);
 		this.setSomenteLeitura(aux);
+	}
+	setPosicao(posicao) {
+		this.buscaValor();
+		this.posicao = posicao;
+		this.mandaValor();
+		this.atualizarContador();
 	}
 	primeiro() {
 		this.buscaValor();

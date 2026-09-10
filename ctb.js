@@ -1,14 +1,14 @@
-import { Modal } from './util/util.js?v4';
-import { ControleAba } from './util/util.js?v4';
-import { ObjetoDOM, ModuloSistemaDOM } from './util/form.js?v4';
-import { ConjuntoDOM } from './util/form.js?v4';
-import { FichasDOM } from './util/form.js?v4';
-import { ComboFiltroDOM } from './util/form.js?v4';
-import { CampoDOM } from './util/form.js?v4';
-import { CampoArquivo } from './util/form.js?v4';
-import { CNPJCPF } from './util/form.js?v4';
-import { IntervaloDOM } from './util/form.js?v4';
-import { NavigationMenu } from './util/menu.js?v4';
+import { Modal } from './util/util.js?v5';
+import { ControleAba } from './util/util.js?v5';
+import { ObjetoDOM, ModuloSistemaDOM } from './util/form.js?v5';
+import { ConjuntoDOM } from './util/form.js?v5';
+import { FichasDOM } from './util/form.js?v5';
+import { ComboFiltroDOM } from './util/form.js?v5';
+import { CampoDOM } from './util/form.js?v5';
+import { CampoArquivo } from './util/form.js?v5';
+import { CNPJCPF } from './util/form.js?v5';
+import { IntervaloDOM } from './util/form.js?v5';
+import { NavigationMenu } from './util/menu.js?v5';
 
 let ehCelular = window.innerWidth <= 768;
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
@@ -930,7 +930,13 @@ class ConjuntoTipoLancamentoContabil extends ConjuntoDOM {
 class TipoLancamentoContabil extends FichasDOM {
 	constructor(aba) {
 		let elemento = document.getElementById("tipoLancamentoContabil");
-		super(elemento, "tipoLancamentoContabil", {titulo: "Tipos de Lançamentos", qtdColunas: 10, spanV: 2, ordem: "descricao"});
+		super(elemento, "tipoLancamentoContabil", {
+			titulo: "Tipos de Lançamentos", 
+			qtdColunas: 10, 
+			spanV: 2,
+			regras: {campoChave: "descricao"},
+			ordem: "descricao"
+		});
 		this.aba = aba;
 		this.add(new CampoDOM(null, "descricao", {
 			titulo: "Descrição", spanV: 10, regras: {obrigatorio: true}
@@ -1501,6 +1507,7 @@ class FeriasFuncionario extends ConjuntoDOM {
 			titulo: "Férias",
 			qtdColunas: 2,
 			spanV: 3,
+			spanH: 3,
 			regras: {campoChave: "inicio"},
 			ordem: "inicio",
 			somentePrimeiroLabel: true
@@ -1519,7 +1526,7 @@ class Funcionarios extends FichasDOM {
 			qtdColunas: 6,
 			spanV: 4,
 			regras: {campoChave: "codigo"},
-			ordem: "nome",
+			ordem: "nome"
 		});
 		this.add(new ComboFiltroDOM(null, "contaPassivo", {
 			titulo: "Conta", 
@@ -1551,6 +1558,16 @@ class Funcionarios extends FichasDOM {
 			subtipo: "number",
 			spanV: 2,
 		}));
+		this.add(new CampoDOM(null, "cargo", {
+			titulo: "Cargo", 
+			spanV: 2
+		}));
+		this.add(new CampoDOM(null, "regime", {
+			titulo: "Regime", 
+			tipo: "select",
+			opcoes: [{value: "CLT", text: "CLT"}, {value: "PJ", text: "PJ"}, {value: "MEI", text: "MEI"}],
+		}));
+		this.add(new FeriasFuncionario());
 		this.add(new CampoDOM(null, "jornadaMensal", {
 			titulo: "Jornada mensal", 
 			atributos: {title: "Quantidade de horas mensais trabalhadas"},
@@ -1564,7 +1581,6 @@ class Funcionarios extends FichasDOM {
 			titulo: "Horas extras", 
 			subtipo: "number",
 		}));
-		this.add(new FeriasFuncionario());
 	}
 	atualizarCombos(listaContasNaoSinteticas) {
 		let contaSalario = this.pai.getComponente("contaSalarios").getValor();
@@ -1923,7 +1939,7 @@ async function executaAcao(linkDestino) {
 			contabilidade.limpar();
 		}
 	} else if (linkDestino === "#contas.json") {
-		fetch("dados/contas.json?v4")
+		fetch("dados/contas.json?v5")
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
@@ -1940,7 +1956,7 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	} else if (linkDestino === "#ajuda") {
-		fetch("ajuda.html?v4")
+		fetch("ajuda.html?v5")
 			.then(resposta => resposta.text())
 			.then(html => {
 				const parser = new DOMParser();
