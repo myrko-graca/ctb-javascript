@@ -988,6 +988,7 @@ async function acaoAoClicar(event, elementoClicado) {
 }
 function consolidarAno() {
 	let ano = new Date().getFullYear() - 1;
+	//TODO: ao consolidar as contas que requerem quantidade, observar as quantidades para não perder o valor de aquisição
 	if (confirm("Confirma a consolidação até o ano de " + ano + "?  Lembre de salvar os dados atuais com outro nome antes de efetivar a consolidação dos lançamentos.")) {
 		new Modal().mostrar("Consolidar Ano", "Em elaboração");
 	}
