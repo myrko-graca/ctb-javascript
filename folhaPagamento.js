@@ -62,6 +62,7 @@ class CalculadoraFolhaContabil {
     }
 
     processarFolha(dadosFuncionario) {
+		console.log("processarFolha", dadosFuncionario);
         const salarioBase = dadosFuncionario.salarioBase;
         const horasMensais = dadosFuncionario.jornadaMensal || 220;
         const valorHoraComum = salarioBase / horasMensais;

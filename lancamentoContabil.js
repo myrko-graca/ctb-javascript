@@ -110,7 +110,7 @@ class ContasLancamentoContabil extends ConjuntoDOM {
 	aposIncluir(item) {
 		let conta = item.getComponente("conta");
 		let tipo = this.pai.getComponente("tipo");
-		let filtro = this.pai.filtro[tipo.campo.value];
+		let filtro = this.pai.filtro[tipo.getValor()];
 		let listaContas = this.pai.pai.listaContasNaoSinteticas;
 		this.preencherOpcoesConta(conta, listaContas, filtro);
 	}
@@ -185,20 +185,25 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 				new Modal().mostrar("Obter valores", "Para tenta obter valores, é necessário preencher a quantidade");
 				return;
 			}
-			let contasQuantidade = this.pai.getComponente("contasRequeremQuantidade").getValor();
+			let contasQuantidade = this.getModuloSistema().getComponente("parametrizacao").getComponente("contasRequeremQuantidade").getValor();
 			if (conteudo.creditos) {
 				const contasEncontradas = conteudo.creditos.filter(alvo => 
 					contasQuantidade.some(filtro => alvo.conta.startsWith(filtro.conta))
 				);
 				for (let conta of contasEncontradas) {
 					let valor = this.getModuloSistema().calculoFIFO(conta.conta, conteudo.quantidade);
-					let cred = this.getComponente("creditos");
-					for (let reg of cred.getListaComponentes()) {
-						if (reg.getComponente("conta").getValor() == conta.conta) {
-							reg.getComponente("valor").setValor(valor.toFixed(2));
+					let reg = this.getComponenteConta(this.getComponente("creditos"), conta.conta);
+					reg.getComponente("valor").setValor(valor.toFixed(2));
+					let contaQuantidade = contasQuantidade.find(filtro => conta.conta.startsWith(filtro.conta));
+					if (contaQuantidade.contaReferencia) {
+						let regDeb = this.getComponenteConta(this.getComponente("debitos"), contaQuantidade.contaReferencia);
+						if (!regDeb) {
+							regDeb = this.getComponente("debitos").novo();
 						}
+						regDeb.getComponente("conta").setValor(contaQuantidade.contaReferencia);
+						regDeb.getComponente("valor").setValor(valor.toFixed(2));
+						this.getComponente("debitos").removerVazios();
 					}
-					console.log("lançamentos", conta, valor);
 				}
 			}
 		});
@@ -211,7 +216,7 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 		bt.title = "Calcula valor a partir de informações dos lançamentos nas contas e percentuais de depreciação";
 		bt.addEventListener("click", (e) => {
 			let conteudo = this.getValor().efetuarLancamento;
-			let contasDepreciacao = this.pai.getComponente("contasDepreciacao").getValor();
+			let contasDepreciacao = this.getModuloSistema().getComponente("parametrizacao").getComponente("contasDepreciacao").getValor();
 			if (conteudo.creditos) {
 				let contasEncontradas = contasDepreciacao.filter(alvo => 
 					conteudo.creditos.some(filtro => alvo.contaValor == filtro.conta)
@@ -221,11 +226,16 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 					let valor = Number(contaOrigem.getComponente("saldo").getValor());
 					let perc = Number(conta.taxa) / 100.0;
 					valor *= perc;
-					let cred = this.getComponente("creditos");
-					for (let reg of cred.getListaComponentes()) {
-						if (reg.getComponente("conta").getValor() == conta.contaValor) {
-							reg.getComponente("valor").setValor(valor.toFixed(2));
+					let reg = this.getComponenteConta(this.getComponente("creditos"), conta.contaValor);
+					reg.getComponente("valor").setValor(valor.toFixed(2));
+					if (conta.contaDespesa) {
+						let regDeb = this.getComponenteConta(this.getComponente("debitos"), conta.contaDespesa);
+						if (!regDeb) {
+							regDeb = this.getComponente("debitos").novo();
 						}
+						regDeb.getComponente("conta").setValor(conta.contaDespesa);
+						regDeb.getComponente("valor").setValor(valor.toFixed(2));
+						this.getComponente("debitos").removerVazios();
 					}
 				}
 			}
@@ -239,19 +249,51 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 		bt.title = "Calcula valor a a pagar do simples";
 		bt.addEventListener("click", (e) => {
 			let conteudo = this.getValor().efetuarLancamento;
-			let simplesNacional = this.pai.getComponente("simplesNacional").getValor().simplesNacional;
+			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("simplesNacional").getValor().simplesNacional;
 			if (conteudo.creditos) {
-				if (conteudo.creditos.some(reg => simplesNacional.contaSimples == reg.conta)) {
+				if (conteudo.creditos.some(reg => simplesNacional.contaSimplesRecolher == reg.conta)) {
 					let contaReceita = this.getModuloSistema().localizaConta(simplesNacional.contaReceita);
 					let valor = Number(contaReceita.getComponente("saldo").getValor());
 					let perc = Number(simplesNacional.aliquotaEfetiva) / 100.0;
 					valor *= perc;
-					let cred = this.getComponente("creditos");
-					for (let reg of cred.getListaComponentes()) {
-						if (reg.getComponente("conta").getValor() == simplesNacional.contaSimples) {
-							reg.getComponente("valor").setValor(valor.toFixed(2));
+					let reg = this.getComponenteConta(this.getComponente("creditos"), simplesNacional.contaSimplesRecolher);
+					reg.getComponente("valor").setValor(valor.toFixed(2));
+					if (simplesNacional.contaSimplesAbatimento) {
+						let regDeb = this.getComponenteConta(this.getComponente("debitos"), simplesNacional.contaSimplesAbatimento);
+						if (!regDeb) {
+							regDeb = this.getComponente("debitos").novo();
 						}
+						regDeb.getComponente("conta").setValor(simplesNacional.contaSimplesAbatimento);
+						regDeb.getComponente("valor").setValor(valor.toFixed(2));
+						this.getComponente("debitos").removerVazios();
 					}
+				}
+			}
+		});
+		this.elemento.appendChild(bt);
+
+		bt = document.createElement("button");
+		bt.id = "btCalcularPagamento";
+		bt.hidden = true;
+		bt.textContent = "Gerar pagamento";
+		bt.addEventListener("click", (e) => {
+			let conteudo = this.getValor().efetuarLancamento;
+			let folhaPagamento = this.getModuloSistema().getComponente("parametrizacao").getComponente("folhaPagamento").getValor().folhaPagamento;
+			console.log("pagamento", conteudo, folhaPagamento);
+			if (conteudo.creditos) {
+				let func = folhaPagamento.funcionarios.find(f => conteudo.creditos.some(reg => f.contaPassivo == reg.conta));
+				console.log("func", func);
+				let reg = this.getComponenteConta(this.getComponente("creditos"), func.contaPassivo);
+				let valor = Number(func.salarioBase);
+				reg.getComponente("valor").setValor(valor.toFixed(2));
+				if (folhaPagamento.contaDespesaSalarios) {
+					let regDeb = this.getComponenteConta(this.getComponente("debitos"), folhaPagamento.contaDespesaSalarios);
+					if (!regDeb) {
+						regDeb = this.getComponente("debitos").novo();
+					}
+					regDeb.getComponente("conta").setValor(folhaPagamento.contaDespesaSalarios);
+					regDeb.getComponente("valor").setValor(valor.toFixed(2));
+					this.getComponente("debitos").removerVazios();
 				}
 			}
 		});
@@ -264,6 +306,13 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 			this.limpar();
 		});
 		this.elemento.appendChild(bt);
+	}
+	getComponenteConta(conj, conta) {
+		for (let reg of conj.getListaComponentes()) {
+			if (reg.getComponente("conta").getValor() == conta) {
+				return reg;
+			}
+		}
 	}
 	atualizarCombos() {
 		let tipos = this.pai.getComponente("tipoLancamentoContabil").getValor();
@@ -280,6 +329,7 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 	setValor(valor) {
 		this.atualizarCombos();
 		super.setValor(valor);
+		this.aoModificar(this.getComponente("creditos"));
 	}
 	aoModificar(ultimo) {
 		super.aoModificar(this);
@@ -317,7 +367,15 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 			//Verifica se mostra o botão para calcular simples nacional
 			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("simplesNacional").getValor().simplesNacional;
 			bt = document.getElementById("btCalcularSimples");
-			if (creditos.some(reg => simplesNacional.contaSimples == reg.conta)) {
+			if (creditos.some(reg => simplesNacional.contaSimplesRecolher == reg.conta)) {
+				bt.hidden = false;
+			} else {
+				bt.hidden = true;
+			}
+			//Verifica se mostra o botão para cálculo salarial
+			let folhaPagamento = this.getModuloSistema().getComponente("parametrizacao").getComponente("folhaPagamento").getValor().folhaPagamento;
+			bt = document.getElementById("btCalcularPagamento");
+			if (creditos.some(reg => folhaPagamento.funcionarios.some(f => f.contaPassivo == reg.conta))) {
 				bt.hidden = false;
 			} else {
 				bt.hidden = true;
@@ -347,7 +405,7 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 				}
 				lista.push(item);
 			}
-			let contasQuantidade = this.pai.getComponente("contasRequeremQuantidade").getValor();
+			let contasQuantidade = this.getModuloSistema().getComponente("parametrizacao").getComponente("contasRequeremQuantidade").getValor();
 			let temAlgumPrefixo = conteudo.debitos.some(alvo => 
 				contasQuantidade.some(filtro => alvo.conta.startsWith(filtro.conta))
 			);

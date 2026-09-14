@@ -438,6 +438,14 @@ export class ConjuntoDOM extends ObjetoDOM {
 		this.aposIncluir(n);
 		return n;
 	}
+	removerVazios() {
+		for (let i = this.componentes.length - 1; i >= 0; i--) {
+			let item = this.componentes[i];
+			if (!item.modelo && item.vazio()) {
+				this.remover(item);
+			}
+		}		
+	}
 	remover(item) {
 		let qtdModelo = 0;
 		for (let item of this.componentes) {

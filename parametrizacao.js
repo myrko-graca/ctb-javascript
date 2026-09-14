@@ -6,10 +6,14 @@ class ContasRequeremQuantidade extends ConjuntoDOM {
 		super(null, "contasRequeremQuantidade", {
 			titulo: "Controle de Quantidade",
 			somentePrimeiroLabel: true,
-			qtdColunas: 1
+			qtdColunas: 2,
+			spanV: 2,
 		});
 		this.add(new ComboFiltroDOM(null, "conta", {
 			titulo: "Conta", 
+		}));
+		this.add(new ComboFiltroDOM(null, "contaReferencia", {
+			titulo: "Conta de referência", 
 		}));
 	}
 	novo() {
@@ -18,6 +22,9 @@ class ContasRequeremQuantidade extends ConjuntoDOM {
 			let conta = n.getComponente("conta");
 			let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
 			conta.setOpcoes(listaContas);
+			listaContas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
+			conta = n.getComponente("contaReferencia");
+			conta.setOpcoes(listaContas);
 		}
 		return n;
 	}
@@ -25,6 +32,11 @@ class ContasRequeremQuantidade extends ConjuntoDOM {
 		let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
 		for (let comp of this.getListaComponentes()) {
 			let conta = comp.getComponente("conta");
+			conta.setOpcoes(listaContas);
+		}
+		listaContas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
+		for (let comp of this.getListaComponentes()) {
+			let conta = comp.getComponente("contaReferencia");
 			conta.setOpcoes(listaContas);
 		}
 	}
@@ -59,11 +71,19 @@ class ContasDepreciacao extends FichasDOM {
 			regras: {obrigatorio: true},
 			spanV: 3,
 		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesa", {
+			titulo: "Conta de despesa com depreciação", 
+			regras: {obrigatorio: true},
+			spanV: 7,
+		}));
 	}
 	atualizarCombos() {
 		let listaContas = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
 		this.getComponente("contaOrigem").setOpcoes(listaContas);
+		listaContas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("1."));
 		this.getComponente("contaValor").setOpcoes(listaContas);
+		listaContas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
+		this.getComponente("contaDespesa").setOpcoes(listaContas);
 	}
 }
 class SimplesNacional extends ObjetoDOM {
@@ -95,19 +115,25 @@ class SimplesNacional extends ObjetoDOM {
 		this.add(new ComboFiltroDOM(null, "contaReceita", {
 			titulo: "Conta de Receita para Cálculo", 
 			regras: {obrigatorio: true},
-			spanV: 2
+			spanV: 4
 		}));
-		this.add(new ComboFiltroDOM(null, "contaSimples", {
+		this.add(new ComboFiltroDOM(null, "contaSimplesRecolher", {
 			titulo: "Conta Simples Nacional a Recolher", 
 			regras: {obrigatorio: true},
-			spanV: 2
+			spanV: 4
+		}));
+		this.add(new ComboFiltroDOM(null, "contaSimplesAbatimento", {
+			titulo: "Conta Simples Nacional de Abatimento", 
+			regras: {obrigatorio: true},
+			spanV: 4
 		}));
 	}
 	atualizarCombos() {
 		let listaContas = this.pai.listaContas;
 		this.getComponente("contaReceita").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.")));
 		listaContas = this.pai.listaContasNaoSinteticas;
-		this.getComponente("contaSimples").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
+		this.getComponente("contaSimplesRecolher").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
+		this.getComponente("contaSimplesAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
 	}
 	aoModificar(item) {
 		super.aoModificar(this);
@@ -135,12 +161,13 @@ class SimplesNacional extends ObjetoDOM {
 	}
 }
 class FolhaPagamento extends ObjetoDOM {
-	constructor() {
+	constructor(aba) {
 		let elemento = document.getElementById("folhaPagamento");
 		super(elemento, "folhaPagamento", {
 			titulo: "Folha de Pagamento",
 			qtdColunas: 4
 		});
+		this.aba = aba;
 		this.add(new ComboFiltroDOM(null, "contaSalarios", {
 			titulo: "Salários", 
 			regras: {obrigatorio: true},
@@ -220,6 +247,10 @@ class FolhaPagamento extends ObjetoDOM {
 	setValor(valor) {
 		this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
 		super.setValor(valor);
+	}
+	focar() {
+		super.focar();
+		this.aba.alternar("abaFolha");
 	}
 }
 class FeriasFuncionario extends ConjuntoDOM {
@@ -321,7 +352,7 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.abaLancamentos = new ControleAba(document.getElementById("abaParametros"));
 		this.listaContas = [];
 		this.listaContasNaoSinteticas = [];
-		let folhaPagamento = new FolhaPagamento();
+		let folhaPagamento = new FolhaPagamento(this.abaLancamentos);
 		this.add(folhaPagamento);
 		let contasDepreciacao = new ContasDepreciacao();
 		this.add(contasDepreciacao);
@@ -350,5 +381,9 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.getComponente("simplesNacional").atualizarCombos();
 		this.getComponente("folhaPagamento").atualizarCombos();
 	}
-
+	focar() {
+		super.focar();
+		this.aba.alternar("abaParametros");
+		this.abaLancamentos.alternar("abaBasica");
+	}
 }
