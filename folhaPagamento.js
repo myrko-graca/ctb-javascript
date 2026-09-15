@@ -1,4 +1,4 @@
-class CalculadoraFolhaContabil {
+export class CalculadoraFolhaContabil {
     constructor() {
         this.TETO_INSS = 8475.55;
         this.INSS_MAXIMO = 988.09;
@@ -190,7 +190,7 @@ class CalculadoraFolhaContabil {
 // =========================================================================
 // 🚀 BATERIA DE TESTES INTEGRADOS: DEPARTAMENTO PESSOAL E CONTABILIDADE
 // =========================================================================
-
+/*
 const coreFolha = new CalculadoraFolhaContabil();
 
 console.log("%c DRIVER DE TESTES: INICIANDO VALIDAÇÃO DE FOLHA, ENCARGOS E PROVISÕES 2026 ", "background: #1e1e1e; color: #00ff7f; font-size: 14px; font-weight: bold;");
@@ -283,3 +283,4 @@ console.log(f5.lancamentosContabeis);
 
 
 console.log("\n%c BATERIA DE TESTES DE FOLHA FINALIZADA COM SUCESSO! ", "background: #006400; color: #fff; font-size: 12px; font-weight: bold;");
+*/

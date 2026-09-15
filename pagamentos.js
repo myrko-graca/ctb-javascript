@@ -1,4 +1,4 @@
-class GerenciadorPagamentosContabil {
+export class GerenciadorPagamentosContabil {
     constructor() {
         this.TETO_INSS = 8475.55;
         this.INSS_MAX_RETIDO_PF = 932.31; 

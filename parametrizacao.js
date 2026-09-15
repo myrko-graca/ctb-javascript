@@ -173,51 +173,31 @@ class FolhaPagamento extends ObjetoDOM {
 			regras: {obrigatorio: true},
 			spanV: 2,
 		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaSalarios", {
-			titulo: "Despesa com salários", 
-			regras: {obrigatorio: true},
-			spanV: 2,
-		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaHorasExtras", {
-			titulo: "Despesa com horas extras", 
-			spanV: 2,
-		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaAdicionalNoturno", {
-			titulo: "Despesa com com adicional noturno", 
-			spanV: 2,
-		}));
 		this.add(new ComboFiltroDOM(null, "contaFGTSARecolher", {
 			titulo: "FGTS a recolher", 
 			spanV: 2,
 		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaFGTS", {
-			titulo: "Despesa com FGTS", 
+		this.add(new ComboFiltroDOM(null, "contaINSSARecolher", {
+			titulo: "INSS a recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaIRRFARecolher", {
+			titulo: "IRRF a recolher", 
 			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaProvisao13o", {
 			titulo: "Provisão de 13º Salário", 
 			spanV: 2,
 		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesa13o", {
-			titulo: "Despesas com Provisão de 13º", 
-			spanV: 2,
-		}));
 		this.add(new ComboFiltroDOM(null, "contaProvisaoFeriasTerco", {
 			titulo: "Provisão de Férias/Terço", 
-			spanV: 2,
-		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaFeriasTerco", {
-			titulo: "Despesas com Provisão de Férias/Terço", 
 			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaProvisaoFGTSARecolher", {
 			titulo: "FGTS Prov. Férias/Terço/13º a Recolher", 
 			spanV: 2,
 		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaFGTSProvisoes", {
-			titulo: "Despesas com FGTS sobre Provisões", 
-			spanV: 2,
-		}));
+		this.add(new TiposFuncionarios());
 		this.add(new Funcionarios());
 	}
 	aoModificar(ultimo) {
@@ -231,17 +211,14 @@ class FolhaPagamento extends ObjetoDOM {
 		let listaContasDespesas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
 		this.getComponente("contaSalarios").setOpcoes(listaContasPassivo);
 		listaContasPassivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
-		this.getComponente("contaDespesaSalarios").setOpcoes(listaContasDespesas);
-		this.getComponente("contaDespesaHorasExtras").setOpcoes(listaContasDespesas);
-		this.getComponente("contaDespesaAdicionalNoturno").setOpcoes(listaContasDespesas);
 		this.getComponente("contaFGTSARecolher").setOpcoes(listaContasPassivo);
-		this.getComponente("contaDespesaFGTS").setOpcoes(listaContasDespesas);
 		this.getComponente("contaProvisao13o").setOpcoes(listaContasPassivo);
-		this.getComponente("contaDespesa13o").setOpcoes(listaContasDespesas);
 		this.getComponente("contaProvisaoFeriasTerco").setOpcoes(listaContasPassivo);
-		this.getComponente("contaDespesaFeriasTerco").setOpcoes(listaContasDespesas);
 		this.getComponente("contaProvisaoFGTSARecolher").setOpcoes(listaContasPassivo);
-		this.getComponente("contaDespesaFGTSProvisoes").setOpcoes(listaContasDespesas);
+		this.getComponente("tiposFuncionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
+		this.atualizarFuncionarios();
+	}
+	atualizarFuncionarios() {
 		this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
 	}
 	setValor(valor) {
@@ -251,6 +228,76 @@ class FolhaPagamento extends ObjetoDOM {
 	focar() {
 		super.focar();
 		this.aba.alternar("abaFolha");
+	}
+}
+class TiposFuncionarios extends FichasDOM {
+	constructor() {
+		super(null, "tiposFuncionarios", {
+			titulo: "Tipos de Colaboradores",
+			qtdColunas: 4,
+			spanV: 4,
+			regras: {campoChave: "nome"},
+			ordem: "nome",
+		});
+		this.add(new CampoDOM(null, "nome", {
+			titulo: "Nome", 
+			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaSalario", {
+			titulo: "Despesa com salário", 
+			regras: {obrigatorio: true},
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaHorasExtras", {
+			titulo: "Despesa com horas extras", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaAdicionalNoturno", {
+			titulo: "Despesa com com adicional noturno", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFGTS", {
+			titulo: "Despesa com FGTS", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaINSS", {
+			titulo: "Despesa com INSS", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaIRRF", {
+			titulo: "Despesa com IRRF", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaVT", {
+			titulo: "Despesa com Vale Transporte", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesa13o", {
+			titulo: "Despesas com Provisão de 13º", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFeriasTerco", {
+			titulo: "Despesas com Provisão de Férias/Terço", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "contaDespesaFGTSProvisoes", {
+			titulo: "Despesas com FGTS sobre Provisões", 
+			spanV: 2,
+		}));
+	}
+	atualizarCombos(listaContasNaoSinteticas) {
+		let lista = listaContasNaoSinteticas.filter(lc => lc.value.startsWith("1.") || lc.value.startsWith("4."));
+		this.getComponente("contaDespesaSalario").setOpcoes(lista);
+		this.getComponente("contaDespesaHorasExtras").setOpcoes(lista);
+		this.getComponente("contaDespesaAdicionalNoturno").setOpcoes(lista);
+		this.getComponente("contaDespesaFGTS").setOpcoes(lista);
+		this.getComponente("contaDespesaINSS").setOpcoes(lista);
+		this.getComponente("contaDespesaIRRF").setOpcoes(lista);
+		this.getComponente("contaDespesaVT").setOpcoes(lista);
+		this.getComponente("contaDespesa13o").setOpcoes(lista);
+		this.getComponente("contaDespesaFeriasTerco").setOpcoes(lista);
+		this.getComponente("contaDespesaFGTSProvisoes").setOpcoes(lista);
 	}
 }
 class FeriasFuncionario extends ConjuntoDOM {
@@ -272,23 +319,31 @@ class FeriasFuncionario extends ConjuntoDOM {
 	}
 }
 class Funcionarios extends FichasDOM {
-	constructor() {
-		super(null, "funcionarios", {
+	constructor(aba) {
+		let elemento = document.getElementById("funcionarios");
+		super(elemento, "funcionarios", {
 			titulo: "Funcionários",
 			qtdColunas: 6,
 			spanV: 4,
 			regras: {campoChave: "codigo"},
 			ordem: "nome"
 		});
+		this.aba = aba;
+		this.add(new CampoDOM(null, "nome", {
+			titulo: "Nome", 
+			spanV: 6,
+			regras: {obrigatorio: true},
+		}));
+		this.add(new CampoDOM(null, "tipo", {
+			titulo: "Tipo", 
+			spanV: 3,
+			regras: {obrigatorio: true},
+			tipo: "select",
+		}));
 		this.add(new ComboFiltroDOM(null, "contaPassivo", {
 			titulo: "Conta", 
 			regras: {obrigatorio: true},
 			spanV: 3,
-		}));
-		this.add(new CampoDOM(null, "nome", {
-			titulo: "Nome", 
-			spanV: 3,
-			regras: {obrigatorio: true},
 		}));
 		this.add(new CampoDOM(null, "salarioBase", {
 			titulo: "Salário base", 
@@ -342,6 +397,23 @@ class Funcionarios extends FichasDOM {
 		} else {
 			this.getComponente("contaPassivo").setOpcoes(listaContasNaoSinteticas);
 		}
+		let listaTipos = this.pai.getComponente("tiposFuncionarios").getValor();
+		listaTipos = listaTipos.map(({ nome }) => ({
+			text: nome,
+		}));
+		this.getComponente("tipo").setOpcoes(listaTipos);
+	}
+	setValor(valor) {
+		let listaTipos = this.pai.getComponente("tiposFuncionarios").getValor();
+		listaTipos = listaTipos.map(({ nome }) => ({
+			text: nome,
+		}));
+		this.getComponente("tipo").setOpcoes(listaTipos);
+		super.setValor(valor);
+	}
+	focar() {
+		super.focar();
+		this.aba.alternar("abaFuncionarios");
 	}
 }
 export class ParametrizacaoCTB extends ObjetoDOM {
@@ -360,6 +432,11 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.add(simplesNacional);
 		let contasQuantidade = new ContasRequeremQuantidade();
 		this.add(contasQuantidade);
+		this.abaLancamentos.aoAlterar = (aba) => {
+			if (aba == "abaFuncionarios") {
+				folhaPagamento.atualizarFuncionarios();
+			}
+		};
 	}
 	setValor(valor) {
 		let listaContas = this.getModuloSistema().getListaContas();

@@ -1,5 +1,6 @@
 import { Modal, ControleAba } from './util/util.js?v6';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v6';
+import { GerenciadorPagamentosContabil } from './pagamentos.js?v6';
 
 class ConjuntoTipoLancamentoContabil extends ConjuntoDOM {
 	constructor(elemento, nome, obj) {
@@ -286,14 +287,29 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 				let reg = this.getComponenteConta(this.getComponente("creditos"), func.contaPassivo);
 				let valor = Number(func.salarioBase);
 				reg.getComponente("valor").setValor(valor.toFixed(2));
-				if (folhaPagamento.contaDespesaSalarios) {
-					let regDeb = this.getComponenteConta(this.getComponente("debitos"), folhaPagamento.contaDespesaSalarios);
+				if (func.contaDespesa) {
+					let regDeb = this.getComponenteConta(this.getComponente("debitos"), func.contaDespesa);
 					if (!regDeb) {
 						regDeb = this.getComponente("debitos").novo();
 					}
-					regDeb.getComponente("conta").setValor(folhaPagamento.contaDespesaSalarios);
+					regDeb.getComponente("conta").setValor(func.contaDespesa);
 					regDeb.getComponente("valor").setValor(valor.toFixed(2));
 					this.getComponente("debitos").removerVazios();
+					// Processamento CLT
+					if (func.regime == "CLT") {
+						let calculadora = new GerenciadorPagamentosContabil();
+						let processamento = calculadora.processarPagamento("CLT", {
+							salarioBase: valor,
+							jornadaMensal: Number(func.jornadaMensal),
+							qtdHorasExtras: Number(func.qtdHorasExtras),
+							qtdHorasNoturnas: Number(func.qtdHorasNoturnas),
+							dependentes: Number(func.dependentes),
+							utilizaVT: func.utilizaVT,
+							custoRealVT: Number(func.custoRealVT),
+						});
+						console.log("processamento", processamento);
+						console.log(processamento.lancamentosContabeis);
+					}
 				}
 			}
 		});
