@@ -54,6 +54,10 @@ if (!document.querySelector("style[id='estilo_form']")) {
 			box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
 			outline: none; /* Remove a borda azul padrão do navegador se quiser customizar */
 		}
+		.hidden {
+			display: none!important;
+			opacity: 0;
+		}
 	`;
 	document.head.appendChild(estilo);
 }
@@ -272,6 +276,11 @@ export class ObjetoDOM {
 	}
 	setVisibilidade(valor) {
 		this.elemento.hidden = !valor;
+		if (valor) {
+			this.elemento.classList.remove("hidden");
+		} else {
+			this.elemento.classList.add("hidden");
+		}
 		return this;
 	}
 	getSomenteLeitura() {

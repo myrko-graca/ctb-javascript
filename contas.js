@@ -68,9 +68,6 @@ class ContaCTB extends ObjetoDOM {
 		let sub = new ConjuntoContaCTB(this, titulo);
 		this.add(sub);
 	}
-	alterarSaldo(valor, natureza) {
-		ContaCTB.alterarSaldo(this, valor, natureza);
-	}
 	static #alterarSaldo(componente, valor, natureza, primeiraConta) {
 		while (componente instanceof ConjuntoDOM) {
 			componente = componente.pai;
@@ -88,7 +85,7 @@ class ContaCTB extends ObjetoDOM {
 			} else {
 				saldo += (natureza === 'C') ? valor : -valor;
 			}
-			compSaldo.setValor(saldo);
+			compSaldo.setValor(saldo.toFixed(2));
 		}
 		let contaPai = componente.pai;
 		if (contaPai) {

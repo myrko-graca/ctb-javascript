@@ -129,9 +129,9 @@ class SimplesNacional extends ObjetoDOM {
 		}));
 	}
 	atualizarCombos() {
-		let listaContas = this.pai.listaContas;
+		let listaContas = this.pai.pai.listaContas;
 		this.getComponente("contaReceita").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.")));
-		listaContas = this.pai.listaContasNaoSinteticas;
+		listaContas = this.pai.pai.listaContasNaoSinteticas;
 		this.getComponente("contaSimplesRecolher").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
 		this.getComponente("contaSimplesAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
 	}
@@ -185,6 +185,10 @@ class FolhaPagamento extends ObjetoDOM {
 			titulo: "IRRF a recolher", 
 			spanV: 2,
 		}));
+		this.add(new ComboFiltroDOM(null, "contaValeTransporte", {
+			titulo: "Vale transporte disponível", 
+			spanV: 2,
+		}));
 		this.add(new ComboFiltroDOM(null, "contaProvisao13o", {
 			titulo: "Provisão de 13º Salário", 
 			spanV: 2,
@@ -207,11 +211,15 @@ class FolhaPagamento extends ObjetoDOM {
 		}
 	}
 	atualizarCombos() {
+		let listaContasAtivo = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
 		let listaContasPassivo = this.pai.listaContas.filter(lc => lc.value.startsWith("2."));
 		let listaContasDespesas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
 		this.getComponente("contaSalarios").setOpcoes(listaContasPassivo);
+		this.getComponente("contaValeTransporte").setOpcoes(listaContasAtivo);
 		listaContasPassivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
 		this.getComponente("contaFGTSARecolher").setOpcoes(listaContasPassivo);
+		this.getComponente("contaINSSARecolher").setOpcoes(listaContasPassivo);
+		this.getComponente("contaIRRFARecolher").setOpcoes(listaContasPassivo);
 		this.getComponente("contaProvisao13o").setOpcoes(listaContasPassivo);
 		this.getComponente("contaProvisaoFeriasTerco").setOpcoes(listaContasPassivo);
 		this.getComponente("contaProvisaoFGTSARecolher").setOpcoes(listaContasPassivo);
@@ -261,14 +269,6 @@ class TiposFuncionarios extends FichasDOM {
 			titulo: "Despesa com FGTS", 
 			spanV: 2,
 		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaINSS", {
-			titulo: "Despesa com INSS", 
-			spanV: 2,
-		}));
-		this.add(new ComboFiltroDOM(null, "contaDespesaIRRF", {
-			titulo: "Despesa com IRRF", 
-			spanV: 2,
-		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaVT", {
 			titulo: "Despesa com Vale Transporte", 
 			spanV: 2,
@@ -292,8 +292,6 @@ class TiposFuncionarios extends FichasDOM {
 		this.getComponente("contaDespesaHorasExtras").setOpcoes(lista);
 		this.getComponente("contaDespesaAdicionalNoturno").setOpcoes(lista);
 		this.getComponente("contaDespesaFGTS").setOpcoes(lista);
-		this.getComponente("contaDespesaINSS").setOpcoes(lista);
-		this.getComponente("contaDespesaIRRF").setOpcoes(lista);
 		this.getComponente("contaDespesaVT").setOpcoes(lista);
 		this.getComponente("contaDespesa13o").setOpcoes(lista);
 		this.getComponente("contaDespesaFeriasTerco").setOpcoes(lista);
@@ -305,10 +303,7 @@ class FeriasFuncionario extends ConjuntoDOM {
 		super(null, "ferias", {
 			titulo: "Férias",
 			qtdColunas: 2,
-			spanV: 3,
-			spanH: 3,
-			regras: {campoChave: "inicio"},
-			ordem: "inicio",
+			spanV: 6,
 			somentePrimeiroLabel: true
 		});
 		this.add(new IntervaloDOM(null, "periodo", {
@@ -374,7 +369,6 @@ class Funcionarios extends FichasDOM {
 			tipo: "select",
 			opcoes: [{value: "CLT", text: "CLT"}, {value: "PJ", text: "PJ"}, {value: "MEI", text: "MEI"}],
 		}));
-		this.add(new FeriasFuncionario());
 		this.add(new CampoDOM(null, "jornadaMensal", {
 			titulo: "Jornada mensal", 
 			atributos: {title: "Quantidade de horas mensais trabalhadas"},
@@ -388,6 +382,7 @@ class Funcionarios extends FichasDOM {
 			titulo: "Horas extras", 
 			subtipo: "number",
 		}));
+		this.add(new FeriasFuncionario());
 	}
 	atualizarCombos(listaContasNaoSinteticas) {
 		let contaSalario = this.pai.getComponente("contaSalarios").getValor();
@@ -416,6 +411,39 @@ class Funcionarios extends FichasDOM {
 		this.aba.alternar("abaFuncionarios");
 	}
 }
+class RegimeTributario extends ObjetoDOM {
+	constructor() {
+		super(null, "regimeTributario", {titulo: "Regime Tributário"});
+		this.add(new CampoDOM(null, "tipo", {
+			titulo: "Tipo", 
+			regras: {obrigatorio: true},
+			tipo: "select",
+			opcoes: [{value: "REGULAR", text: "Regular"},{value: "MEI", text: "MEI"},{value: "SIMPLES_PADRAO", text: "Simples Nacional (padrão)"},{value: "SIMPLES_ANEXO_IV", text: "Simples Nacional (anexo IV)"},]
+		}));
+		let simplesNacional = new SimplesNacional();
+		this.add(simplesNacional);
+	}
+	init() {
+		let tipo = this.getComponente("tipo");
+		let simplesNacional = this.getComponente("simplesNacional");
+		simplesNacional.setVisibilidade(false);
+		tipo.aoModificar = (item) => {
+			let valor = tipo.getValor();
+			if (valor.startsWith("SIMPLES")) {
+				simplesNacional.setVisibilidade(true);
+			} else {
+				simplesNacional.setVisibilidade(false);
+			}
+		};
+	}
+	setValor(valor) {
+		super.setValor(valor);
+		this.getComponente("tipo").aoModificar();
+	}
+	atualizarCombos() {
+		this.getComponente("simplesNacional").atualizarCombos();
+	}
+}
 export class ParametrizacaoCTB extends ObjetoDOM {
 	constructor(aba) {
 		let elemento = document.getElementById("parametros");
@@ -424,12 +452,12 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.abaLancamentos = new ControleAba(document.getElementById("abaParametros"));
 		this.listaContas = [];
 		this.listaContasNaoSinteticas = [];
+		let regimeTributario = new RegimeTributario();
+		this.add(regimeTributario);
 		let folhaPagamento = new FolhaPagamento(this.abaLancamentos);
 		this.add(folhaPagamento);
 		let contasDepreciacao = new ContasDepreciacao();
 		this.add(contasDepreciacao);
-		let simplesNacional = new SimplesNacional();
-		this.add(simplesNacional);
 		let contasQuantidade = new ContasRequeremQuantidade();
 		this.add(contasQuantidade);
 		this.abaLancamentos.aoAlterar = (aba) => {
@@ -453,9 +481,9 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 			text: codigo + " - " + descricao,
 			value: codigo
 		}));
+		this.getComponente("regimeTributario").atualizarCombos();
 		this.getComponente("contasRequeremQuantidade").atualizarCombos();
 		this.getComponente("contasDepreciacao").atualizarCombos();
-		this.getComponente("simplesNacional").atualizarCombos();
 		this.getComponente("folhaPagamento").atualizarCombos();
 	}
 	focar() {

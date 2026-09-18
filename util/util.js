@@ -226,7 +226,7 @@ export class ControleAba {
 			estilo.id = "estilo_aba";
 			estilo.innerHTML = `
 				.hidden {
-					display: none;
+					display: none!important;
 					opacity: 0;
 				}
 				.navAba {

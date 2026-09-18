@@ -72,7 +72,6 @@ class ContasLancamentoContabil extends ConjuntoDOM {
 			titulo: titulo, 
 			qtdColunas: 10, 
 			spanV: 10, 
-			regras: {obrigatorio: true, campoChave: "conta"}, 
 			somentePrimeiroLabel: true
 		});
 		this.add(new CampoDOM(null, "conta", {
@@ -284,17 +283,18 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 			if (conteudo.creditos) {
 				let func = folhaPagamento.funcionarios.find(f => conteudo.creditos.some(reg => f.contaPassivo == reg.conta));
 				console.log("func", func);
-				let reg = this.getComponenteConta(this.getComponente("creditos"), func.contaPassivo);
+				this.getComponente("debitos").limpar(true);
+				this.getComponente("creditos").limpar(true);
+				
+				let reg = this.getComponente("creditos").novo();
 				let valor = Number(func.salarioBase);
+				reg.getComponente("conta").setValor(func.contaPassivo);
 				reg.getComponente("valor").setValor(valor.toFixed(2));
-				if (func.contaDespesa) {
-					let regDeb = this.getComponenteConta(this.getComponente("debitos"), func.contaDespesa);
-					if (!regDeb) {
-						regDeb = this.getComponente("debitos").novo();
-					}
-					regDeb.getComponente("conta").setValor(func.contaDespesa);
+				let tipoFuncionario = folhaPagamento.tiposFuncionarios.find(t => t.nome == func.tipo);
+				if (tipoFuncionario.contaDespesaSalario) {
+					let regDeb = this.getComponente("debitos").novo();
+					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaSalario);
 					regDeb.getComponente("valor").setValor(valor.toFixed(2));
-					this.getComponente("debitos").removerVazios();
 					// Processamento CLT
 					if (func.regime == "CLT") {
 						let calculadora = new GerenciadorPagamentosContabil();
@@ -307,9 +307,91 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 							utilizaVT: func.utilizaVT,
 							custoRealVT: Number(func.custoRealVT),
 						});
+						if (folhaPagamento.contaFGTSARecolher && tipoFuncionario.contaDespesaFGTS && processamento.valores.fgts) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFGTS);
+							regDeb.getComponente("valor").setValor(processamento.valores.fgts.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaFGTSARecolher);
+							regCred.getComponente("valor").setValor(processamento.valores.fgts.toFixed(2));
+						}
+						if (folhaPagamento.contaINSSARecolher && processamento.valores.inss) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(func.contaPassivo);
+							regDeb.getComponente("valor").setValor(processamento.valores.inss.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaINSSARecolher);
+							regCred.getComponente("valor").setValor(processamento.valores.inss.toFixed(2));
+						}
+						if (folhaPagamento.contaIRRFARecolher && processamento.valores.irrf) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(func.contaPassivo);
+							regDeb.getComponente("valor").setValor(processamento.valores.irrf.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaIRRFARecolher);
+							regCred.getComponente("valor").setValor(processamento.valores.irrf.toFixed(2));
+						}
+						if (folhaPagamento.contaValeTransporte && processamento.valores.vt) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(func.contaPassivo);
+							regDeb.getComponente("valor").setValor(processamento.valores.vt.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaValeTransporte);
+							regCred.getComponente("valor").setValor(processamento.valores.vt.toFixed(2));
+						}
+						if (folhaPagamento.contaValeTransporte && tipoFuncionario.contaDespesaVT && processamento.valores.vtPatrao) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaVT);
+							regDeb.getComponente("valor").setValor(processamento.valores.vtPatrao.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaValeTransporte);
+							regCred.getComponente("valor").setValor(processamento.valores.vtPatrao.toFixed(2));
+						}
+						if (folhaPagamento.contaValeTransporte && tipoFuncionario.contaDespesaVT && processamento.valores.vtPatrao) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaVT);
+							regDeb.getComponente("valor").setValor(processamento.valores.vtPatrao.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaValeTransporte);
+							regCred.getComponente("valor").setValor(processamento.valores.vtPatrao.toFixed(2));
+						}
+						if (folhaPagamento.contaProvisao13o && tipoFuncionario.contaDespesa13o && processamento.valores.provisoes.decimoTerceiro) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesa13o);
+							regDeb.getComponente("valor").setValor(processamento.valores.provisoes.decimoTerceiro.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaProvisao13o);
+							regCred.getComponente("valor").setValor(processamento.valores.provisoes.decimoTerceiro.toFixed(2));
+						}
+						if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes.ferias) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFeriasTerco);
+							regDeb.getComponente("valor").setValor(processamento.valores.provisoes.ferias.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaProvisaoFeriasTerco);
+							regCred.getComponente("valor").setValor(processamento.valores.provisoes.ferias.toFixed(2));
+						}
+						if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes.tercoFerias) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFeriasTerco);
+							regDeb.getComponente("valor").setValor(processamento.valores.provisoes.tercoFerias.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaProvisaoFeriasTerco);
+							regCred.getComponente("valor").setValor(processamento.valores.provisoes.tercoFerias.toFixed(2));
+						}
+						if (folhaPagamento.contaProvisaoFGTSARecolher && tipoFuncionario.contaDespesaFGTSProvisoes && processamento.valores.provisoes.fgtsProvisoes) {
+							let regDeb = this.getComponente("debitos").novo();
+							regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFGTSProvisoes);
+							regDeb.getComponente("valor").setValor(processamento.valores.provisoes.fgtsProvisoes.toFixed(2));
+							let regCred = this.getComponente("creditos").novo();
+							regCred.getComponente("conta").setValor(folhaPagamento.contaProvisaoFGTSARecolher);
+							regCred.getComponente("valor").setValor(processamento.valores.provisoes.fgtsProvisoes.toFixed(2));
+						}
 						console.log("processamento", processamento);
 						console.log(processamento.lancamentosContabeis);
 					}
+					//this.getComponente("debitos").removerVazios();
+					//this.getComponente("creditos").removerVazios();
 				}
 			}
 		});
@@ -381,7 +463,7 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 				bt.hidden = true;
 			}
 			//Verifica se mostra o botão para calcular simples nacional
-			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("simplesNacional").getValor().simplesNacional;
+			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("regimeTributario").getComponente("simplesNacional").getValor().simplesNacional;
 			bt = document.getElementById("btCalcularSimples");
 			if (creditos.some(reg => simplesNacional.contaSimplesRecolher == reg.conta)) {
 				bt.hidden = false;
