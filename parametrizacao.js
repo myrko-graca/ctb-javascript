@@ -217,11 +217,6 @@ class FolhaPagamento extends ObjetoDOM {
 			qtdColunas: 4
 		});
 		this.aba = aba;
-		this.add(new ComboFiltroDOM(null, "contaSalarios", {
-			titulo: "Salários", 
-			regras: {obrigatorio: true},
-			spanV: 2,
-		}));
 		this.add(new ComboFiltroDOM(null, "contaFGTSARecolher", {
 			titulo: "FGTS a recolher", 
 			spanV: 2,
@@ -253,17 +248,10 @@ class FolhaPagamento extends ObjetoDOM {
 		this.add(new TiposFuncionarios(this.aba));
 		this.add(new Funcionarios(this.aba));
 	}
-	aoModificar(ultimo) {
-		super.aoModificar(this);
-		if (ultimo == this.getComponente("contaSalarios")) {
-			this.getComponente("funcionarios").atualizarCombos(this.pai.listaContasNaoSinteticas);
-		}
-	}
 	atualizarCombos() {
 		let listaContasAtivo = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
 		let listaContasPassivo = this.pai.listaContas.filter(lc => lc.value.startsWith("2."));
 		let listaContasDespesas = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
-		this.getComponente("contaSalarios").setOpcoes(listaContasPassivo);
 		this.getComponente("contaValeTransporte").setOpcoes(listaContasAtivo);
 		listaContasPassivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
 		this.getComponente("contaFGTSARecolher").setOpcoes(listaContasPassivo);
@@ -421,7 +409,7 @@ class Funcionarios extends FichasDOM {
 		this.add(new CampoDOM(null, "regime", {
 			titulo: "Regime", 
 			tipo: "select",
-			opcoes: [{value: "CLT", text: "CLT"}, {value: "PJ", text: "PJ"}, {value: "MEI", text: "MEI"}],
+			opcoes: [{value: "CLT", text: "CLT"}, {value: "MEI", text: "MEI"}, {value: "RPA", text: "AUTÔNOMO"}, {value: "PJ_REGULAR", text: "PJ"}, {value: "PRO_LABORE", text: "PRÓ-LABORE"}],
 		}));
 		this.add(new CampoDOM(null, "jornadaMensal", {
 			titulo: "Jornada mensal", 
@@ -453,6 +441,8 @@ class Funcionarios extends FichasDOM {
 			let calculadora = new GerenciadorPagamentosContabil();
 			let processamento = calculadora.processarPagamento(func.regime, {
 				salarioBase: Number(func.salarioBase),
+				valorContrato: Number(func.salarioBase),
+				//isConstrucaoOuManutencao: true,
 				jornadaMensal: Number(func.jornadaMensal),
 				qtdHorasExtras: Number(func.qtdHorasExtras),
 				qtdHorasNoturnas: Number(func.qtdHorasNoturnas),
@@ -638,7 +628,7 @@ class Funcionarios extends FichasDOM {
 				doc.text("Assinatura do Funcionário", 10, 209);
 				doc.text("Data: ____/____/______", 10, 215);
 
-				doc.save("contracheque-" + ano + "." + mes + "-" + codigo + ".pdf");
+				doc.save("contracheque-" + ano + "." + mes + "-" + func.nome + ".pdf");
 			}, 100);
 		});
 		bt = document.createElement("button");
@@ -680,6 +670,8 @@ class Funcionarios extends FichasDOM {
 				let calculadora = new GerenciadorPagamentosContabil();
 				let processamento = calculadora.processarPagamento(func.regime, {
 					salarioBase: valor,
+					valorContrato: valor,
+					//isConstrucaoOuManutencao: true,
 					jornadaMensal: Number(func.jornadaMensal),
 					qtdHorasExtras: Number(func.qtdHorasExtras),
 					qtdHorasNoturnas: Number(func.qtdHorasNoturnas),
@@ -687,6 +679,7 @@ class Funcionarios extends FichasDOM {
 					utilizaVT: func.utilizaVT,
 					custoRealVT: Number(func.custoRealVT),
 				}, empresa);
+				console.log("processamento", processamento, func);
 				if (tipoFuncionario.contaDespesaHorasExtras && processamento.valores.horasExtras) {
 					let regDeb = lancamento.getComponente("debitos").novo();
 					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaHorasExtras);
@@ -751,7 +744,7 @@ class Funcionarios extends FichasDOM {
 					regCred.getComponente("conta").setValor(folhaPagamento.contaValeTransporte);
 					regCred.getComponente("valor").setValor(processamento.valores.vtPatrao.toFixed(2));
 				}
-				if (folhaPagamento.contaProvisao13o && tipoFuncionario.contaDespesa13o && processamento.valores.provisoes.decimoTerceiro) {
+				if (folhaPagamento.contaProvisao13o && tipoFuncionario.contaDespesa13o && processamento.valores.provisoes?.decimoTerceiro) {
 					let regDeb = lancamento.getComponente("debitos").novo();
 					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesa13o);
 					regDeb.getComponente("valor").setValor(processamento.valores.provisoes.decimoTerceiro.toFixed(2));
@@ -759,7 +752,7 @@ class Funcionarios extends FichasDOM {
 					regCred.getComponente("conta").setValor(folhaPagamento.contaProvisao13o);
 					regCred.getComponente("valor").setValor(processamento.valores.provisoes.decimoTerceiro.toFixed(2));
 				}
-				if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes.ferias) {
+				if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes?.ferias) {
 					let regDeb = lancamento.getComponente("debitos").novo();
 					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFeriasTerco);
 					regDeb.getComponente("valor").setValor(processamento.valores.provisoes.ferias.toFixed(2));
@@ -767,7 +760,7 @@ class Funcionarios extends FichasDOM {
 					regCred.getComponente("conta").setValor(folhaPagamento.contaProvisaoFeriasTerco);
 					regCred.getComponente("valor").setValor(processamento.valores.provisoes.ferias.toFixed(2));
 				}
-				if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes.tercoFerias) {
+				if (folhaPagamento.contaProvisaoFeriasTerco && tipoFuncionario.contaDespesaFeriasTerco && processamento.valores.provisoes?.tercoFerias) {
 					let regDeb = lancamento.getComponente("debitos").novo();
 					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFeriasTerco);
 					regDeb.getComponente("valor").setValor(processamento.valores.provisoes.tercoFerias.toFixed(2));
@@ -775,7 +768,7 @@ class Funcionarios extends FichasDOM {
 					regCred.getComponente("conta").setValor(folhaPagamento.contaProvisaoFeriasTerco);
 					regCred.getComponente("valor").setValor(processamento.valores.provisoes.tercoFerias.toFixed(2));
 				}
-				if (folhaPagamento.contaProvisaoFGTSARecolher && tipoFuncionario.contaDespesaFGTSProvisoes && processamento.valores.provisoes.fgtsProvisoes) {
+				if (folhaPagamento.contaProvisaoFGTSARecolher && tipoFuncionario.contaDespesaFGTSProvisoes && processamento.valores.provisoes?.fgtsProvisoes) {
 					let regDeb = lancamento.getComponente("debitos").novo();
 					regDeb.getComponente("conta").setValor(tipoFuncionario.contaDespesaFGTSProvisoes);
 					regDeb.getComponente("valor").setValor(processamento.valores.provisoes.fgtsProvisoes.toFixed(2));
@@ -790,13 +783,8 @@ class Funcionarios extends FichasDOM {
 		});
 	}
 	atualizarCombos(listaContasNaoSinteticas) {
-		let contaSalario = this.pai.getComponente("contaSalarios").getValor();
-		if (contaSalario) {
-			let listaContasSalarios = listaContasNaoSinteticas.filter(lc => lc.value.startsWith(contaSalario));
-			this.getComponente("contaPassivo").setOpcoes(listaContasSalarios);
-		} else {
-			this.getComponente("contaPassivo").setOpcoes(listaContasNaoSinteticas);
-		}
+		let listaContasSalarios = listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
+		this.getComponente("contaPassivo").setOpcoes(listaContasSalarios);
 		let listaTipos = this.pai.getComponente("tiposFuncionarios").getValor();
 		listaTipos = listaTipos.map(({ nome }) => ({
 			text: nome,
