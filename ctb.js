@@ -1,9 +1,9 @@
-import { Modal, ControleAba } from './util/util.js?v6';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v6';
-import { NavigationMenu } from './util/menu.js?v6';
-import { ParametrizacaoCTB } from './parametrizacao.js?v6';
-import { LancamentoContabil } from './lancamentoContabil.js?v6';
-import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v6';
+import { Modal, ControleAba } from './util/util.js?v7';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v7';
+import { NavigationMenu } from './util/menu.js?v7';
+import { ParametrizacaoCTB } from './parametrizacao.js?v7';
+import { LancamentoContabil } from './lancamentoContabil.js?v7';
+import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v7';
 
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
 
@@ -30,6 +30,16 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 			titulo: "Balanço",
 			spanV: 2, 
 		}));
+		this.add(new CampoDOM(null, "endereco", {
+			titulo: "Endereço", 
+			spanV: 7, 
+			regras: {obrigatorio: true}
+		}));
+		this.add(new ComboFiltroDOM(null, "cidadeEstado", {
+			titulo: "Cidade/Estado", 
+			spanV: 3, 
+			regras: {obrigatorio: true}
+		}));
 		this.add(new Ativos(this.aba));
 		this.add(new Passivos(this.aba));
 		this.add(new Receitas(this.aba));
@@ -38,6 +48,7 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 		this.add(new LancamentoContabil(this.aba));
 		this.add(new ApuracaoResultado(this.aba));
 		let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
+
 		this.aba.aoAlterar = (aba) => {
 			if (aba == "abaResumo") {
 				this.mostrarResumo(document.getElementById("resumo"));
@@ -55,7 +66,31 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 			}
 		}
 	}
-	setValor(valor) {
+	async carregarDados() {
+		super.carregarDados();
+		let cidadeEstado = this.getComponente("cidadeEstado");
+		if (!this.carregandoDados) {
+			try {
+				this.carregandoDados = true;
+				let res = await fetch("dados/estados-cidades.json?v7");
+				let obj = await res.json();
+				let opcoes = [];
+				for (let estado of obj.estados) {
+					for (let cidade of estado.cidades) {
+						opcoes.push({text: cidade + "/" + estado.sigla});
+					}
+				}
+				cidadeEstado.setOpcoes(opcoes);
+			} catch(erro) {
+				console.error('Erro ao ler o JSON:', erro);
+			}
+		}
+	}
+	async novo() {
+		this.limpar();
+	}
+	async setValor(valor) {
+		await this.carregarDados();
 		super.setValor(valor);
 		if (valor.lancamentos) {
 			this.lancamentos = valor.lancamentos;
@@ -362,6 +397,7 @@ async function abrirComJanelaNativa() {
 }
 
 let contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
+await contabilidade.carregarDados();
 document.body.hidden = false;
 console.log("contabilidade", contabilidade);
 
@@ -377,10 +413,10 @@ async function executaAcao(linkDestino) {
 		salvarComJanelaNativa(str);
 	} else if (linkDestino === "#novo") {
 		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
-			contabilidade.limpar();
+			contabilidade.novo();
 		}
 	} else if (linkDestino === "#contas.json") {
-		fetch("dados/contas.json?v6")
+		fetch("dados/contas.json?v7")
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
@@ -397,7 +433,7 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	} else if (linkDestino === "#ajuda") {
-		fetch("ajuda.html?v6")
+		fetch("ajuda.html?v7")
 			.then(resposta => resposta.text())
 			.then(html => {
 				const parser = new DOMParser();

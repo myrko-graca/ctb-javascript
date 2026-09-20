@@ -214,7 +214,7 @@ export class GerenciadorPagamentosContabil {
 
         return { 
             valores: { 
-                bruto: brutoTotal, inss, irrf: irrf.valor, vt, vtPatrao, fgts, patronal: totalInssPatronal, liquido,
+                bruto: brutoTotal, horasExtras: he, adicionalNoturno: an, inss, irrf: irrf.valor, vt, vtPatrao, fgts, patronal: totalInssPatronal, liquido,
                 provisoes: { decimoTerceiro: prov13, ferias: provFerias, tercoFerias: provTerco, fgtsProvisoes: totalFgtsProvisoes }
             }, 
             lancamentosContabeis: txt 
@@ -339,6 +339,8 @@ export class GerenciadorPagamentosContabil {
 // ============================================================================
 // SIMULADOR DE CENÁRIOS CONTÁBEIS NO CONSOLE (SEM ASSERT)
 // ============================================================================
+/*
+
 
 const motor = new GerenciadorPagamentosContabil();
 
@@ -431,8 +433,6 @@ console.log(c5.lancamentosContabeis);
 console.log("\n=================================================================");
 console.log(" 🚀 TODOS OS CENÁRIOS FORAM PROCESSADOS E EXIBIDOS NO CONSOLE! ");
 console.log("=================================================================\n");
-
-/*
 
 
 import { GerenciadorPagamentosContabil } from './GerenciadorPagamentosContabil.js';

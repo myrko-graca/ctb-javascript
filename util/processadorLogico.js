@@ -1,4 +1,4 @@
-import { Conjunto } from './conjunto.js?v6';
+import { Conjunto } from './conjunto.js?v7';
 
 export class ProcessadorLogico {
 	// MÈTODO PRIVADO: Transforma o JSON bruto na Árvore de Sintaxe Abstrata (AST)

@@ -1,4 +1,4 @@
-import { CustomSelect } from './customselect.js?v6';
+import { CustomSelect } from './customselect.js?v7';
 console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
 if (!document.querySelector("style[id='estilo_form']")) {
@@ -305,6 +305,11 @@ export class ObjetoDOM {
 			throw new Error("Não foi possível encontrar o módulo do sistema");
 		}
 		return modulo;
+	}
+	async carregarDados() {
+		for (let item of this.componentes) {
+			item.carregarDados();
+		}
 	}
 }
 export class ModuloSistemaDOM extends ObjetoDOM {
@@ -715,6 +720,10 @@ export class FichasDOM extends ObjetoDOM {
 		this.lista = [{}];
 		this.posicao = 0;
 	}
+	getAtual() {
+		this.buscaValor();
+		return this.lista[this.posicao];
+	}
 	buscaValor() {
 		let reg = super.getValor()[this.nome];
 		this.lista[this.posicao] = reg;
@@ -931,6 +940,9 @@ export class ComboFiltroDOM extends ObjetoDOM {
 	}
 	getTipo() {
 		return "campo";
+	}
+	limpar() {
+		this.cs.clearSelection();
 	}
 }
 export class CampoDOM extends ObjetoDOM {
@@ -1497,6 +1509,10 @@ export class CNPJCPF extends ObjetoDOM {
 				this.cpf.limpar();
 			}
 		}
+	}
+	toString() {
+		let tipo = this.tipo.getValor();
+		return tipo.toUpperCase() + ": " + this[tipo].campo.value;
 	}
 	validar() {
 		let lista = super.validar();

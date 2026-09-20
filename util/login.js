@@ -1,4 +1,4 @@
-import { Util } from './util.js?v6';
+import { Util } from './util.js?v7';
 
 document.getElementById('formLogin').addEventListener('submit', function(e) {
 	e.preventDefault();
