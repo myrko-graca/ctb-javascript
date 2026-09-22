@@ -139,7 +139,7 @@ class SimplesNacional extends ObjetoDOM {
 	constructor() {
 		super(null, "simplesNacional", {
 			titulo: "Simples Nacional",
-			qtdColunas: 4
+			qtdColunas: 4,
 		});
 		this.add(new CampoDOM(null, "RBT12", {
 			titulo: "RBT12", 
@@ -462,7 +462,6 @@ class Funcionarios extends FichasDOM {
 			let nomePix = formatarTexto(func.nome, 25);
 			let cidadePix = formatarTexto(cidade, 15);
 			const payloadPixFinal = gerarPayloadPix(func.chavePix, nomePix, cidadePix, processamento.valores.liquido);
-			//new Modal().mostrar("código pix", payloadPixFinal);
 			const qrContainer = document.getElementById('qrcode-hidden');
 			qrContainer.innerHTML = ''; 
 			const qrcode = new QRCode(qrContainer, {
@@ -804,6 +803,27 @@ class Funcionarios extends FichasDOM {
 		this.aba.alternar("abaFuncionarios");
 	}
 }
+class EmpresaRegular extends ObjetoDOM {
+	constructor() {
+		super(null, "empresaRegular", {titulo: "Empresa Regular", qtdColunas: 2});
+		this.add(new CampoDOM(null, "aliquotaRat", {
+			titulo: "Alíquota RAT",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "aliquotaTerceiros", {
+			titulo: "Alíquota de Terceiros",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "fap", {
+			titulo: "FAP",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "desonerada", {
+			titulo: "Desonerada?",
+			subtipo: "checkbox",
+		}));
+	}
+}
 class RegimeTributario extends ObjetoDOM {
 	constructor() {
 		super(null, "regimeTributario", {titulo: "Regime Tributário"});
@@ -811,21 +831,35 @@ class RegimeTributario extends ObjetoDOM {
 			titulo: "Tipo", 
 			regras: {obrigatorio: true},
 			tipo: "select",
-			opcoes: [{value: "REGULAR", text: "Regular"},{value: "MEI", text: "MEI"},{value: "SIMPLES_PADRAO", text: "Simples Nacional (padrão)"},{value: "SIMPLES_ANEXO_IV", text: "Simples Nacional (anexo IV)"},]
+			opcoes: [
+				{value: "REGULAR", text: "Regular"}, 
+				{value: "MEI", text: "MEI"}, 
+				{value: "SIMPLES_PADRAO", text: "Simples Nacional (padrão)"}, 
+				{value: "SIMPLES_ANEXO_IV", text: "Simples Nacional (anexo IV)"},
+			]
 		}));
 		let simplesNacional = new SimplesNacional();
 		this.add(simplesNacional);
+		let empresaRegular = new EmpresaRegular();
+		this.add(empresaRegular);
 	}
 	init() {
 		let tipo = this.getComponente("tipo");
 		let simplesNacional = this.getComponente("simplesNacional");
 		simplesNacional.setVisibilidade(false);
+		let empresaRegular = this.getComponente("empresaRegular");
+		empresaRegular.setVisibilidade(false);
 		tipo.aoModificar = (item) => {
 			let valor = tipo.getValor();
 			if (valor.startsWith("SIMPLES")) {
 				simplesNacional.setVisibilidade(true);
 			} else {
 				simplesNacional.setVisibilidade(false);
+			}
+			if (valor.startsWith("REGULAR")) {
+				empresaRegular.setVisibilidade(true);
+			} else {
+				empresaRegular.setVisibilidade(false);
 			}
 		};
 	}
