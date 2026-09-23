@@ -1,5 +1,5 @@
-import { Modal, ControleAba } from './util/util.js?v7';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v7';
+import { Modal, ControleAba } from './util/util.js?v0.7';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.7';
 
 class ConjuntoTipoLancamentoContabil extends ConjuntoDOM {
 	constructor(elemento, nome, obj) {

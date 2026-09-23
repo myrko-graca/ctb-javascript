@@ -1,228 +1,243 @@
-class CalculadoraServicoContabil {
+class MotorContabilValidacao {
     constructor() {
-        // Alíquotas padrão para o Regime Regular (Lucro Presumido/Real)
-        this.REG_PIS = 0.0065;    // 0,65% (Faturamento de Serviços Padrão)
-        this.REG_COFINS = 0.0300; // 3,00%
-        this.REG_ISS_PADRAO = 0.0500; // 5,00% (Teto máximo municipal)
-
-        // Tabela Oficial do Simples Nacional 2026 (Anexo III - Prestação de Serviços)
-        this.TABELA_SIMPLES_2026 = [
-            { limite: 180000.00, nominal: 0.060, deducao: 0.00 },
-            { limite: 360000.00, nominal: 0.112, deducao: 9360.00 },
-            { limite: 720000.00, nominal: 0.135, deducao: 17640.00 },
-            { limite: 1800000.00, nominal: 0.160, deducao: 35640.00 },
-            { limite: 3600000.00, nominal: 0.210, deducao: 125640.00 },
-            { limite: 4800000.00, nominal: 0.330, deducao: 648000.00 }
-        ];
+        this.LIMITES_ISS = { min: 0.0200, max: 0.0500 }; 
+        this.LIMITES_PIS = { min: 0.0000, max: 0.0165 }; 
+        this.LIMITES_COFINS = { min: 0.0000, max: 0.0760 }; 
+        this.LIMITE_LUCRO_TRIMESTRAL = 60000.00; 
+        this.ALIQUOTA_ADICIONAL_IRPJ = 0.10;    
     }
 
     _arredondar(valor) {
         return Math.round(valor * 100) / 100;
     }
 
-    _calcularAliquotaEfetivaSimples(rbt12) {
-        if (!rbt12 || rbt12 <= 0) return this.TABELA_SIMPLES_2026[0].nominal;
-
-        for (let faixa of this.TABELA_SIMPLES_2026) {
-            if (rbt12 <= faixa.limite) {
-                let efetiva = ((rbt12 * faixa.nominal) - faixa.deducao) / rbt12;
-                return this._arredondar(efetiva);
-            }
-        }
-        return this.TABELA_SIMPLES_2026[this.TABELA_SIMPLES_2026.length - 1].nominal;
+    _validarTaxa(taxa, limites) {
+        if (taxa === undefined || taxa === null || isNaN(taxa)) return false;
+        const valorDecimal = taxa > 1 ? taxa / 100 : taxa;
+        return valorDecimal >= limites.min && valorDecimal <= limites.max;
     }
-
     processarServico(dadosServico) {
-        const regime = (dadosServico.regimeTributario || 'REGULAR').toUpperCase();
-        const valorBrutoServico = dadosServico.valorTotalServico;
+        const regime = (dadosServico.regimeTributario || 'LUCRO_PRESUMIDO').toUpperCase();
+        const valorBrutoServico = dadosServico.valorTotalServico || 0;
         const desconto = dadosServico.descontoConcedido || 0;
         const valorComDesconto = Math.max(0, valorBrutoServico - desconto);
-        const custoServicoPrestado = dadosServico.custoServicoPrestado || 0; // CSP
+        const custoServicoPrestado = dadosServico.custoServicoPrestado || 0;
+        const issRetidoFonte = regime === 'SIMPLES_ANEXO_IV' 
+            ? (dadosServico.issRetidoFonte !== undefined ? dadosServico.issRetidoFonte : true)
+            : (dadosServico.issRetidoFonte || false);
 
-        let iss = 0, pis = 0, cofins = 0, valorDasSimples = 0, taxaSimplesDescrita = "0.0%";
-        let pisRetido = 0, cofinsRetido = 0;
+        let iss = 0, pis = 0, cofins = 0, irpjBase = 0, irpjAdicional = 0, irpj = 0, csll = 0, valorDasSimples = 0;
+        let irrfRetido = 0, csrfRetido = 0, issRetido = 0; 
+        let statusRegime = "OK";
+        let taxaSimplesDescrita = "0.0%";
 
-        if (regime === 'SIMPLES') {
-            // No Simples Nacional, os impostos são recolhidos unificados no DAS mensal
-            const rbt12 = dadosServico.faturamentoAcumulado12Meses || 0;
-            const aliquotaEfetiva = this._calcularAliquotaEfetivaSimples(rbt12);
+        if (regime === 'MEI') {
+            taxaSimplesDescrita = "Fixo Mensal (DAS-MEI)";
+        } 
+        else if (regime === 'SIMPLES' || regime === 'SIMPLES_ANEXO_IV') {
+            if (dadosServico.aliquotaSimplesEfetiva === undefined || dadosServico.aliquotaSimplesEfetiva <= 0) {
+                return { valores: null, statusRegime: "ERRO_ALIQUOTA_DAS_OBRIGATORIA", lancamentosContabeis: "ERRO: 'aliquotaSimplesEfetiva' obrigatória." };
+            }
+            if (regime === 'SIMPLES_ANEXO_IV' && !this._validarTaxa(dadosServico.aliquotaIss, this.LIMITES_ISS)) {
+                return { valores: null, statusRegime: "ERRO_ISS_INVALIDO", lancamentosContabeis: "ERRO: 'aliquotaIss' obrigatória no Anexo IV." };
+            }
+
+            const alDAS = dadosServico.aliquotaSimplesEfetiva > 1 ? dadosServico.aliquotaSimplesEfetiva / 100 : dadosServico.aliquotaSimplesEfetiva;
+            valorDasSimples = this._arredondar(valorComDesconto * alDAS);
+            taxaSimplesDescrita = `${(alDAS * 100).toFixed(2)}%`;
+
+            if (issRetidoFonte) {
+                const alISS = dadosServico.aliquotaIss > 1 ? dadosServico.aliquotaIss / 100 : dadosServico.aliquotaIss;
+                issRetido = this._arredondar(valorComDesconto * alISS);
+            }
+        } 
+        else if (regime === 'LUCRO_PRESUMIDO' || regime === 'LUCRO_REAL') {
+            const obrigatorios = ['aliquotaIss', 'aliquotaPis', 'aliquotaCofins', 'aliquotaIrpj', 'aliquotaCsll'];
+            for (let campo of obrigatorios) {
+                if (dadosServico[campo] === undefined || dadosServico[campo] < 0) {
+                    return { valores: null, statusRegime: `ERRO_PARAMETRO_${campo.toUpperCase()}_OBRIGATORIO`, lancamentosContabeis: `ERRO: Campo '${campo}' exigido.` };
+                }
+            }
+
+            const alISS = dadosServico.aliquotaIss > 1 ? dadosServico.aliquotaIss / 100 : dadosServico.aliquotaIss;
+            const alPIS = dadosServico.aliquotaPis > 1 ? dadosServico.aliquotaPis / 100 : dadosServico.aliquotaPis;
+            const alCOFINS = dadosServico.aliquotaCofins > 1 ? dadosServico.aliquotaCofins / 100 : dadosServico.aliquotaCofins;
+            const alIRPJ = dadosServico.aliquotaIrpj > 1 ? dadosServico.aliquotaIrpj / 100 : dadosServico.aliquotaIrpj;
+            const alCSLL = dadosServico.aliquotaCsll > 1 ? dadosServico.aliquotaCsll / 100 : dadosServico.aliquotaCsll;
+
+            if (!this._validarTaxa(alISS, this.LIMITES_ISS) || !this._validarTaxa(alPIS, this.LIMITES_PIS) || !this._validarTaxa(alCOFINS, this.LIMITES_COFINS)) {
+                return { valores: null, statusRegime: "ERRO_LIMITES_FISCAIS", lancamentosContabeis: "ERRO: Taxas violam limites legais." };
+            }
+
+            iss = this._arredondar(valorComDisconto * alISS);
+            pis = this._arredondar(valorComDesconto * alPIS);
+            cofins = this._arredondar(valorComDesconto * alCOFINS);
+            csll = this._arredondar(valorComDesconto * alCSLL);
             
-            valorDasSimples = this._arredondar(valorComDesconto * aliquotaEfetiva);
-            taxaSimplesDescrita = `${(aliquotaEfetiva * 100).toFixed(2)}%`;
-        } else {
-            // Regime Regular: Calcula impostos incidentes sobre a nota
-            const alIss = dadosServico.aliquotaIss !== undefined ? (dadosServico.aliquotaIss / 100) : this.REG_ISS_PADRAO;
+            irpjBase = this._arredondar(valorComDesconto * alIRPJ);
             
-            iss = this._arredondar(valorComDesconto * alIss);
-            pis = this._arredondar(valorComDesconto * this.REG_PIS);
-            cofins = this._arredondar(valorComDesconto * this.REG_COFINS);
+            if (regime === 'LUCRO_PRESUMIDO') {
+                const presuncaoInput = dadosServico.percentualPresuncao || 32.0; 
+                const alPresuncao = presuncaoInput > 1 ? presuncaoInput / 100 : presuncaoInput;
+                const fatAcumulado = dadosServico.faturamentoAcumuladoTrimestre || 0;
+                
+                const lucroPresumidoAnterior = this._arredondar(fatAcumulado * alPresuncao);
+                const lucroPresumidoDaNota = this._arredondar(valorComDesconto * alPresuncao);
+                const lucroPresumidoTotalAcumulado = lucroPresumidoAnterior + lucroPresumidoDaNota;
 
-            // Tratamento de retenções na fonte (se aplicável ao tipo de cliente/serviço)
+                if (lucroPresumidoTotalAcumulado > this.LIMITE_LUCRO_TRIMESTRAL) {
+                    let parcelaExcedenteTributavel = 0;
+
+                    if (lucroPresumidoAnterior >= this.LIMITE_LUCRO_TRIMESTRAL) {
+                        parcelaExcedenteTributavel = lucroPresumidoDaNota;
+                    } else {
+                        parcelaExcedenteTributavel = lucroPresumidoTotalAcumulado - this.LIMITE_LUCRO_TRIMESTRAL;
+                    }
+                    irpjAdicional = this._arredondar(parcelaExcedenteTributavel * this.ALIQUOTA_ADICIONAL_IRPJ);
+                }
+            }
+
+            irpj = this._arredondar(irpjBase + irpjAdicional);
+
+            if (issRetidoFonte) { issRetido = iss; iss = 0; }
+
             if (dadosServico.sofreRetencaoFonte) {
-                pisRetido = this._arredondar(valorComDesconto * 0.0065); // 0,65% retido
-                cofinsRetido = this._arredondar(valorComDesconto * 0.0300); // 3,00% retido
+                if (dadosServico.aliquotaRetIrrf === undefined || dadosServico.aliquotaRetCsrf === undefined) {
+                    return { valores: null, statusRegime: "ERRO_TAXAS_RETENCAO", lancamentosContabeis: "ERRO: Taxas de retenção obrigatórias." };
+                }
+                const alRetIRRF = dadosServico.aliquotaRetIrrf > 1 ? dadosServico.aliquotaRetIrrf / 100 : dadosServico.aliquotaRetIrrf;
+                const alRetCSRF = dadosServico.aliquotaRetCsrf > 1 ? dadosServico.aliquotaRetCsrf / 100 : dadosServico.aliquotaRetCsrf;
+
+                irrfRetido = this._arredondar(valorComDesconto * alRetIRRF);
+                csrfRetido = this._arredondar(valorComDesconto * alRetCSRF);
             }
         }
 
-        // Fluxo Financeiro: O valor que entra no caixa considera o desconto e os impostos retidos na fonte
-        const totalImpostosNota = iss + pis + cofins + valorDasSimples;
-        const totalRetencoes = pisRetido + cofinsRetido;
-        
+        const totalImpostosNota = iss + pis + cofins + irpj + csll + valorDasSimples;
+        const totalRetencoes = irrfRetido + csrfRetido + issRetido; 
         const percentualAVista = dadosServico.percentualAVista || 0;
         const valorLiquidoReceber = valorComDesconto - totalRetencoes;
         const valorAVista = this._arredondar(valorLiquidoReceber * (percentualAVista / 100));
         const valorAPrazo = this._arredondar(valorLiquidoReceber - valorAVista);
-
-        const receitaLiquida = this._arredondar(valorComDesconto - totalImpostosNota);
+        const receivable = valorComDesconto - totalImpostosNota - issRetido;
+        const receitaLiquida = this._arredondar(receivable);
         const lucroBrutoServico = this._arredondar(receitaLiquida - custoServicoPrestado);
 
         const servicoCalculado = {
-            regime, valorBrutoServico, desconto, valorComDesconto, custoServicoPrestado,
-            iss, pis, cofins, valorDasSimples, taxaSimplesDescrita,
-            pisRetido, cofinsRetido, totalRetencoes,
+            regime, statusRegime, valorBrutoServico, desconto, valorComDesconto, custoServicoPrestado,
+            iss, pis, cofins, irpjBase, irpjAdicional, irpj, csll, valorDasSimples, taxaSimplesDescrita,
+            irrfRetido, csrfRetido, issRetido, totalRetencoes, issRetidoFonte,
             receitaLiquida, lucroBrutoServico, valorAVista, valorAPrazo,
             metodoRecebimento: percentualAVista === 100 ? "À Vista" : (percentualAVista === 0 ? "A Prazo" : "Misto")
         };
 
         return {
             valores: servicoCalculado,
-            lancamentosContabeis: this.gerarLancamentosTexto(servicoCalculado)
+            lancamentosContabeis: this.gerarLancamentosTexto(servicoCalculado),
+            lancamentosJSON: this.gerarLancamentosJSON(servicoCalculado)
         };
+    }
+    gerarLancamentosJSON(v) {
+        if (v.statusRegime !== "OK") return { erro: v.statusRegime };
+        const lancamentos = [];
+        if (v.valorAVista > 0) lancamentos.push({ tipo: "DÉBITO", conta: "Caixa / Bancos (Ativo Circulante)", valor: v.valorAVista });
+        if (v.valorAPrazo > 0) lancamentos.push({ tipo: "DÉBITO", conta: "Clientes / Contas a Receber (Ativo Circulante)", valor: v.valorAPrazo });
+        lancamentos.push({ tipo: "CRÉDITO", conta: "Receita de Prestação de Serviços (Resultado)", valor: v.valorBrutoServico });
+        return { metadata: { regime: v.regime }, partidas: lancamentos };
     }
 
     gerarLancamentosTexto(v) {
-        let texto = "========================================================\n";
-        texto += `   LANÇAMENTOS CONTÁBEIS: PRESTAÇÃO DE SERVIÇO [${v.regime}]\n`;
-        texto += "========================================================\n\n";
-        texto += "--- 1. REGISTRO DO FATURAMENTO, DESCONTO E RETENÇÕES ---\n";
-
-        if (v.valorAVista > 0) texto += "DÉBITO : Caixa / Bancos (Ativo Circulante) --------- R$ " + v.valorAVista.toFixed(2) + "\n";
-        if (v.valorAPrazo > 0) texto += "DÉBITO : Clientes / Contas a Receber (Ativo Circ.) - R$ " + v.valorAPrazo.toFixed(2) + "\n";
-        if (v.desconto > 0)    texto += "DÉBITO : (-) Descontos Concedidos (Resultado) ------- R$ " + v.desconto.toFixed(2) + "\n";
+        let texto = `========================================================\n   [REGIME: ${v.regime}] - VALIDAÇÃO COMPLETA DE VALORES\n========================================================\n`;
+        texto += `Valor Bruto: R$ ${v.valorBrutoServico.toFixed(2)} | Desconto: R$ ${v.desconto.toFixed(2)}\n`;
+        texto += `Líquido a Receber: R$ ${(v.valorAVista + v.valorAPrazo).toFixed(2)} (${v.metodoRecebimento})\n`;
         
-        // Registra o direito de compensar os impostos retidos no Ativo Circulante
-        if (v.totalRetencoes > 0) {
-            texto += "DÉBITO : PIS a Compensar / Retido (Ativo Circulante)  R$ " + v.pisRetido.toFixed(2) + "\n";
-            texto += "DÉBITO : COFINS a Compensar / Retido (Ativo Circ.) -- R$ " + v.cofinsRetido.toFixed(2) + "\n";
+        if (v.regime === 'LUCRO_PRESUMIDO') {
+            texto += `-> IRPJ Base: R$ ${v.irpjBase.toFixed(2)} | Adicional 10%: R$ ${v.irpjAdicional.toFixed(2)} | Total IRPJ: R$ ${v.irpj.toFixed(2)}\n`;
+        } else if (v.regime === 'SIMPLES' || v.regime === 'SIMPLES_ANEXO_IV') {
+            texto += `-> Guia DAS (Simples): R$ ${v.valorDasSimples.toFixed(2)} (Taxa: ${v.taxaSimplesDescrita})\n`;
+            if (v.issRetido > 0) texto += `⚠️ ISS Retido na Fonte destacado: R$ ${v.issRetido.toFixed(2)}\n`;
+        } else if (v.regime === 'MEI') {
+            texto += `-> Isenção completa de impostos retidos ou incidentes em nota fiscal.\n`;
         }
-
-        texto += "CRÉDITO: Receita de Prestação de Serviços (Resultado) R$ " + v.valorBrutoServico.toFixed(2) + "\n";
-        texto += "Histórico: Faturamento ref. NFS-e emitida, recebimento " + v.metodoRecebimento + ".\n\n";
-
-        if (v.regime === 'SIMPLES') {
-            texto += "--- 2. REGISTRO DO SIMPLES NACIONAL (ANEXO III) ---\n";
-            texto += "DÉBITO : (-) Simples Nacional sobre Faturamento (Res.) R$ " + v.valorDasSimples.toFixed(2) + "\n";
-            texto += "CRÉDITO: Simples Nacional a Recolher (Passivo Circ.) - R$ " + v.valorDasSimples.toFixed(2) + "\n";
-            texto += "Histórico: Provisão de DAS sobre serviço (Alíquota Efetiva: " + v.taxaSimplesDescrita + ").\n\n";
-        } else {
-            texto += "--- 2. REGISTRO DOS IMPOSTOS DA OPERAÇÃO (REGIME REGULAR) ---\n";
-            texto += "DÉBITO : (-) ISS sobre Serviços (Resultado) --------- R$ " + v.iss.toFixed(2) + "\n";
-            texto += "CRÉDITO: ISS a Recolher (Passivo Circulante) -------- R$ " + v.iss.toFixed(2) + "\n\n";
-            texto += "DÉBITO : (-) PIS sobre Faturamento (Resultado) ------ R$ " + v.pis.toFixed(2) + "\n";
-            texto += "CRÉDITO: PIS a Recolher (Passivo Circulante) -------- R$ " + v.pis.toFixed(2) + "\n\n";
-            texto += "DÉBITO : (-) COFINS sobre Faturamento (Resultado) ---- R$ " + v.cofins.toFixed(2) + "\n";
-            texto += "CRÉDITO: COFINS a Recolher (Passivo Circulante) ----- R$ " + v.cofins.toFixed(2) + "\n\n";
-        }
-
-        texto += "--- 3. REGISTRO DO CUSTO DO SERVIÇO (CSP) ---\n";
-        texto += "DÉBITO : Custo dos Serviços Prestados - CSP (Result) - R$ " + v.custoServicoPrestado.toFixed(2) + "\n";
-        texto += "CRÉDITO: Mão de Obra / Custos Aplicados (Ativo/Res.) - R$ " + v.custoServicoPrestado.toFixed(2) + "\n";
-        texto += "Histórico: Apropriação dos custos diretos aplicados na execução do serviço.\n";
-        
         return texto;
     }
 }
 
 // =========================================================================
-// 🚀 BATERIA DE TESTES INTEGRADOS: PRESTAÇÃO DE SERVIÇOS E RETENÇÕES
+// 🚀 EXECUÇÃO DA NOVA SUPER BATERIA DE TESTES
 // =========================================================================
+const executor = new MotorContabilValidacao();
 
-const coreServico = new CalculadoraServicoContabil();
+console.log("%c 🟢 EXECUTANDO BATERIA PARAMETRIZADA POR BLOCOS ", "background: #222; color: #00ff00; font-weight: bold;");
 
-console.log("%c DRIVER DE TESTES: INICIANDO VALIDAÇÃO DE PRESTAÇÃO DE SERVIÇOS 2026 ", "background: #111; color: #00bfff; font-size: 14px; font-weight: bold;");
-
-// -------------------------------------------------------------------------
-// CENÁRIO 1: REGIME REGULAR - Serviço sem Retenção com Recebimento à Vista
-// -------------------------------------------------------------------------
-console.log("\n------------------------------------------------------------");
-console.log("CENÁRIO 1: REGIME REGULAR | SEM RETENÇÃO NA FONTE | RECEBIMENTO À VISTA");
-console.log("------------------------------------------------------------");
-const s1 = coreServico.processarServico({
-    regimeTributario: 'REGULAR',
-    valorTotalServico: 8000.00,
-    custoServicoPrestado: 2500.00, // CSP (Mão de obra, insumos do projeto)
-    percentualAVista: 100,         // 100% Caixa/Bancos
-    aliquotaIss: 5,                // ISS padrão de 5%
-    sofreRetencaoFonte: false,
-    descontoConcedido: 0
+// TESTE 1: Lucro Presumido sem Adicional
+console.log("\n--- TESTE 1: LUCRO PRESUMIDO (ISENTO DE ADICIONAL DE IRPJ) ---");
+let t1 = executor.processarServico({
+    regimeTributario: 'LUCRO_PRESUMIDO',
+    valorTotalServico: 30000.00,
+    faturamentoAcumuladoTrimestre: 40000.00, 
+    percentualPresuncao: 32.0,
+    aliquotaIss: 5.0, aliquotaPis: 0.65, aliquotaCofins: 3.0, aliquotaIrpj: 4.8, aliquotaCsll: 2.88,
+    percentualAVista: 100
 });
-console.log(s1.lancamentosContabeis);
+console.log(t1.lancamentosContabeis);
+console.log(t1);
 
-
-// -------------------------------------------------------------------------
-// CENÁRIO 2: REGIME REGULAR - Serviço Corporativo COM Retenção na Fonte (PIS/COFINS)
-// -------------------------------------------------------------------------
-console.log("\n------------------------------------------------------------");
-console.log("CENÁRIO 2: REGIME REGULAR | COM RETENÇÃO NA FONTE (PJ para PJ) | A PRAZO");
-console.log("------------------------------------------------------------");
-const s2 = coreServico.processarServico({
-    regimeTributario: 'REGULAR',
-    valorTotalServico: 15000.00,
-    custoServicoPrestado: 4500.00,
-    percentualAVista: 0,           // 100% a prazo (Contas a Receber)
-    aliquotaIss: 3,                // ISS de 3% fixado por lei municipal
-    sofreRetencaoFonte: true,      // Cliente retém PIS/COFINS e paga apenas o líquido
-    descontoConcedido: 0
+// TESTE 2: Lucro Presumido cruzando o teto no meio da operação
+console.log("\n--- TESTE 2: LUCRO PRESUMIDO (GATILHO PARCIAL DO ADICIONAL 10%) ---");
+let t2= executor.processarServico({
+    regimeTributario: 'LUCRO_PRESUMIDO',
+    valorTotalServico: 80000.00,
+    faturamentoAcumuladoTrimestre: 150000.00, 
+    percentualPresuncao: 32.0,
+    aliquotaIss: 4.0, aliquotaPis: 0.65, aliquotaCofins: 3.0, aliquotaIrpj: 4.8, aliquotaCsll: 2.88,
+    percentualAVista: 0
 });
-console.log(s2.lancamentosContabeis);
+console.log(t2.lancamentosContabeis);
+console.log(t2);
 
+// TESTE 3: Lucro Presumido com teto já estourado previamente
+console.log("\n--- TESTE 3: LUCRO PRESUMIDO (GATILHO INTEGRAL DO ADICIONAL 10%) ---");
+let t3 = executor.processarServico({
+    regimeTributario: 'LUCRO_PRESUMIDO',
+    valorTotalServico: 50000.00,
+    faturamentoAcumuladoTrimestre: 250000.00, 
+    percentualPresuncao: 32.0,
+    aliquotaIss: 5.0, aliquotaPis: 0.65, aliquotaCofins: 3.0, aliquotaIrpj: 4.8, aliquotaCsll: 2.88,
+    percentualAVista: 50
+});
+console.log(t3.lancamentosContabeis);
+console.log(t3);
 
-// -------------------------------------------------------------------------
-// CENÁRIO 3: REGIME REGULAR - Venda de Serviço com Desconto Concedido e Recebimento Misto
-// -------------------------------------------------------------------------
-console.log("\n------------------------------------------------------------");
-console.log("CENÁRIO 3: REGIME REGULAR | COM DESCONTO CONCEDIDO | RECEBIMENTO MISTO (50/50)");
-console.log("------------------------------------------------------------");
-const s3 = coreServico.processarServico({
-    regimeTributario: 'REGULAR',
+// TESTE 4: Simples Nacional Tradicional
+console.log("\n--- TESTE 4: SIMPLES NACIONAL (ALÍQUOTA INJETADA EXTERNA) ---");
+let t4 = executor.processarServico({
+    regimeTributario: 'SIMPLES',
     valorTotalServico: 12000.00,
-    descontoConcedido: 2000.00,    // Desconto incondicional na Nota Fiscal
-    custoServicoPrestado: 3500.00,
-    percentualAVista: 50,          // 50% à vista, 50% a prazo
-    aliquotaIss: 5,
-    sofreRetencaoFonte: false
+    aliquotaSimplesEfetiva: 6.5,
+    percentualAVista: 100
 });
-console.log(s3.lancamentosContabeis);
+console.log(t4.lancamentosContabeis);
+console.log(t4);
 
+// TESTE 5: Simples Nacional Anexo IV com retenção de ISS
+console.log("\n--- TESTE 5: SIMPLES ANEXO IV (OBRIGAÇÃO DE ALÍQUOTA DE ISS E RETENÇÃO) ---");
+let t5 = executor.processarServico({
+    regimeTributario: 'SIMPLES_ANEXO_IV',
+    valorTotalServico: 45000.00,
+    aliquotaSimplesEfetiva: 8.2,
+    aliquotaIss: 3.0,
+    percentualAVista: 0
+})
+console.log(t5.lancamentosContabeis);
+console.log(t5);
 
-// -------------------------------------------------------------------------
-// CENÁRIO 4: SIMPLES NACIONAL - Prestador Inicial (Faixa 1 - Sem Dedução)
-// -------------------------------------------------------------------------
-console.log("\n------------------------------------------------------------");
-console.log("CENÁRIO 4: SIMPLES NACIONAL | ANEXO III | FAIXA 1 (RBT12 < 180k) | À VISTA");
-console.log("------------------------------------------------------------");
-const s4 = coreServico.processarServico({
-    regimeTributario: 'SIMPLES',
-    valorTotalServico: 6000.00,
-    custoServicoPrestado: 1800.00,
-    percentualAVista: 100,
-    faturamentoAcumulado12Meses: 150000.00 // Alíquota nominal inicial de 6% seca
+// TESTE 6: Microempreendedor Individual (MEI)
+console.log("\n--- TESTE 6: MICROEMPREENDEDOR INDIVIDUAL (MEI) ---");
+let t6 = executor.processarServico({
+    regimeTributario: 'MEI',
+    valorTotalServico: 3500.00,
+    percentualAVista: 50
 });
-console.log(s4.lancamentosContabeis);
-
-
-// -------------------------------------------------------------------------
-// CENÁRIO 5: SIMPLES NACIONAL - Prestador Avançado (Faixa 4 - Progressiva) com Desconto
-// -------------------------------------------------------------------------
-console.log("\n------------------------------------------------------------");
-console.log("CENÁRIO 5: SIMPLES NACIONAL | ANEXO III | FAIXA 4 (Progressiva) | COM DESCONTO");
-console.log("------------------------------------------------------------");
-const s5 = coreServico.processarServico({
-    regimeTributario: 'SIMPLES',
-    valorTotalServico: 25000.00,
-    descontoConcedido: 1000.00,
-    custoServicoPrestado: 8000.00,
-    percentualAVista: 0,
-    faturamentoAcumulado12Meses: 1200000.00 // Ativa cálculo de alíquota efetiva alta (Anexo III)
-});
-console.log(s5.lancamentosContabeis);
+console.log(t6.lancamentosContabeis);
+console.log(t6);

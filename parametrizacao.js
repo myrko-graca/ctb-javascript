@@ -1,6 +1,6 @@
-import { Modal, ControleAba } from './util/util.js?v7';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v7';
-import { GerenciadorPagamentosContabil } from './pagamentos.js?v7';
+import { Modal, ControleAba } from './util/util.js?v0.7';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.7';
+import { GerenciadorPagamentosContabil } from './pagamentos.js?v0.7';
 const { jsPDF } = window.jspdf;
 
 function calcularCRC16(payload) {
@@ -832,7 +832,8 @@ class RegimeTributario extends ObjetoDOM {
 			regras: {obrigatorio: true},
 			tipo: "select",
 			opcoes: [
-				{value: "REGULAR", text: "Regular"}, 
+				{value: "REGULAR_LP", text: "Lucro Presumido"}, 
+				{value: "REGULAR_LR", text: "Lucro Real"}, 
 				{value: "MEI", text: "MEI"}, 
 				{value: "SIMPLES_PADRAO", text: "Simples Nacional (padrão)"}, 
 				{value: "SIMPLES_ANEXO_IV", text: "Simples Nacional (anexo IV)"},

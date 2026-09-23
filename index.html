@@ -4,10 +4,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script src="./externo/jspdf.umd.min.js"></script>
 		<script src="./externo/qrcode.min.js"></script>
-		<link rel="stylesheet" href="ctb.css?v7">
-		<script type="module" src="ctb.js?v7"></script>
+		<link rel="stylesheet" href="ctb.css?v0.7">
+		<script type="module" src="ctb.js?v0.7"></script>
 		<title>Contabilidade Simples em Javascript</title>
-		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwZjJmNSIvPgogIDxyZWN0IHg9IjYiIHk9IjIwIiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjYmRjM2M3IiByeD0iMSIvPgogIDxyZWN0IHg9IjEzIiB5PSIxNCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IiM5NWExYTYiIHJ4PSIxIi8+CiAgPHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iMTgiIHg9IjIwIiB5PSI4IiBmaWxsPSIjN2Y4YzhkIiByeD0iMSIvPgogIDxwYXRoIGQ9Ik00IDI2IEwxMCAxOCBMMTYgMjIgTDI4IDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNMjIgOCBMMjggOCBMMjggMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzI3YWU2MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+" />
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI0Y4RkFGQyIvPgogIDxyZWN0IHg9IjUiIHk9IjIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI2IiBmaWxsPSIjOTNDNUZEIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMTMuNSIgeT0iMTQiIHdpZHRoPSI1IiBoZWlnaHQ9IjEyIiBmaWxsPSIjNjBBNUZBIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMjIiIHk9IjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjE4IiBmaWxsPSIjMjU2M0VCIiBzdG9wLWNvbG9yPSIjMjU2M0VCIiByeD0iMS41Ii8+CiAgPHBhdGggZD0iTTcuNSAyMCBMMTYgMTQgTDI0LjUgOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTBCOTgxIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5LjUgOCBIMjQuNSBWMTMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=" />
 	</head>
 	<body style="margin:0px" hidden>
 		<header class="header">
@@ -82,6 +82,7 @@
 				<button data-aba="abaBasica" data-ativo>Basico</button>
 				<button data-aba="abaFolha">Folha</button>
 				<button data-aba="abaFuncionarios">Colaboradores</button>
+				<button data-aba="abaServicos">Serviços</button>
 				<button data-aba="abaMaquinasEquipamentos">Máquinas e Equipamentos</button>
 				<button data-aba="abaEstoque">Estoque</button>
 				<button data-aba="abaMaterialEscritorio">Material Escritório</button>
@@ -96,6 +97,10 @@
 			</div>
 			<div id="abaFuncionarios" class="aba">
 				<fieldset id="funcionarios">
+				</fieldset>
+			</div>
+			<div id="abaServicos" class="aba">
+				<fieldset id="servicos">
 				</fieldset>
 			</div>
 			<div id="abaMaquinasEquipamentos" class="aba">
