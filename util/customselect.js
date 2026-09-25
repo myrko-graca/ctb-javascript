@@ -11,6 +11,7 @@ export class CustomSelect {
 		this.selectedValue = null;
 		this.items = [];
 		this.focusedItemIndex = -1; // Controle do foco por teclado
+		this.isScrolling = false;   // Flag para controlar o arraste da barra de rolagem
 		
 		this.init();
 	}
@@ -57,7 +58,7 @@ export class CustomSelect {
 		actionsContainer.style.display = 'flex';
 		actionsContainer.style.alignItems = 'center';
 		actionsContainer.style.gap = '8px';
-		actionsContainer.style.flexShrink = '0'; // Impede o botão X e a seta de esmagarem o texto
+		actionsContainer.style.flexShrink = '0'; 
 
 		this.clearBtn = document.createElement('span');
 		this.clearBtn.textContent = '\u2715'; 
@@ -115,10 +116,13 @@ export class CustomSelect {
 		this.wrapper.appendChild(this.dropdown);
 		this.elemento.appendChild(this.wrapper);
 
+		// Evento de perda de foco do wrapper principal
 		this.wrapper.addEventListener('focusout', (e) => {
-			if (!this.wrapper.contains(e.relatedTarget)) {
-				this.closeDropdown();
+			// Se estiver rolando a barra ou se o foco foi para outro item interno, não fecha
+			if (this.isScrolling || this.wrapper.contains(e.relatedTarget)) {
+				return;
 			}
+			this.closeDropdown();
 		});
 	}
 	renderOptions() {
@@ -127,7 +131,7 @@ export class CustomSelect {
 		}
 		this.list.textContent = '';
 		this.items = [];
-		this.focusedItemIndex = -1; // Reseta índice do teclado
+		this.focusedItemIndex = -1; 
 
 		this.options.forEach(opt => {
 			const item = document.createElement('li');
@@ -143,7 +147,7 @@ export class CustomSelect {
 			item.style.transition = 'background 0.2s, color 0.2s';
 			
 			item.addEventListener('mouseenter', () => {
-				this.clearItemFocus(); // Remove destaque das setas se mover o mouse
+				this.clearItemFocus(); 
 				item.style.backgroundColor = '#f0f0f0';
 			});
 			item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
@@ -174,9 +178,9 @@ export class CustomSelect {
 		if (this.focusedItemIndex < 0) this.focusedItemIndex = visibleItems.length - 1;
 
 		const activeItem = visibleItems[this.focusedItemIndex];
-		activeItem.style.backgroundColor = '#007bff'; // Destaque azul clássico
+		activeItem.style.backgroundColor = '#007bff'; 
 		activeItem.style.color = '#fff';
-		// Controla a barra de rolagem da lista de forma automática
+		
 		const listRect = this.list.getBoundingClientRect();
 		const itemRect = activeItem.getBoundingClientRect();
 
@@ -203,9 +207,28 @@ export class CustomSelect {
 	clearSelection() {
 		this.selectedValue = null;
 		this.label.textContent = this.placeholder;
+		this.btn.title = '';
 		this.clearBtn.style.display = 'none'; 
 	}
 	setupEvents() {
+		// Controla quando o mouse é pressionado na lista (incluindo a barra de rolagem)
+		this.list.addEventListener('mousedown', () => {
+			this.isScrolling = true;
+			const soltarClique = () => {
+				this.isScrolling = false;
+				window.removeEventListener('mouseup', soltarClique);
+			};
+			window.addEventListener('mouseup', soltarClique);
+		});
+
+		// Impede que mousedown de elementos do painel se propague para o document
+		this.dropdown.addEventListener('mousedown', (e) => {
+			if (e.target !== this.input) {
+				e.preventDefault(); // Impede o input de perder o foco ao clicar na barra
+			}
+		});
+
+		// Evento de clique do botão principal (Abre/Fecha)
 		this.btn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			e.preventDefault(); 
@@ -221,9 +244,11 @@ export class CustomSelect {
 				this.closeDropdown();
 			}
 		});
+
 		window.addEventListener('cs-close-all', () => {
 			this.closeDropdown();
 		});
+
 		this.clearBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			e.preventDefault();
@@ -233,17 +258,28 @@ export class CustomSelect {
 			});
 			this.elemento.dispatchEvent(event);
 		});
+
 		this.input.addEventListener('input', (e) => {
 			this.filterOptions(e.target.value);
 		});
+
+		// Fecha a combo se o clique acontecer fora do componente
 		document.addEventListener('mousedown', (e) => {
 			if (!this.wrapper.contains(e.target)) {
 				this.closeDropdown();
 			}
 		});
+
+		// Eventos de teclado do botão principal
 		this.btn.addEventListener('keydown', (e) => {
 			const isClosed = this.dropdown.style.display === 'none';
-			if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+			if (e.key === 'Delete' || e.key === 'Backspace') {
+				if (isClosed) {
+					e.preventDefault();
+					this.clearSelection(); 
+				}
+			}
+			else if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 				e.preventDefault(); 
 				if (isClosed) {
 					window.dispatchEvent(new CustomEvent('cs-close-all'));
@@ -255,6 +291,8 @@ export class CustomSelect {
 				}
 			}
 		});
+
+		// Eventos de teclado da barra de pesquisa (input)
 		this.input.addEventListener('keydown', (e) => {
 			const isClosed = this.dropdown.style.display === 'none';
 			if (isClosed) return;
@@ -282,27 +320,6 @@ export class CustomSelect {
 				this.btn.focus();
 			}
 		});
-		this.btn.addEventListener('keydown', (e) => {
-			const isClosed = this.dropdown.style.display === 'none';
-			if (e.key === 'Delete' || e.key === 'Backspace') {
-				if (isClosed) {
-					e.preventDefault();
-					this.clearSelection(); // Chama o seu método de limpar já existente
-				}
-			}
-			else if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-				e.preventDefault(); 
-				if (isClosed) {
-					window.dispatchEvent(new CustomEvent('cs-close-all'));
-					this.adjustDropdownPosition();
-					this.dropdown.style.display = 'block';
-					this.input.value = '';
-					this.filterOptions('');
-					setTimeout(() => this.input.focus(), 50); 
-				}
-			}
-		});
-
 	}
 	adjustDropdownPosition() {
 		const rect = this.btn.getBoundingClientRect();
@@ -323,21 +340,23 @@ export class CustomSelect {
 		}
 	}
 	filterOptions(searchTerm) {
-		const term = searchTerm.toLowerCase();
+		// Normalização para remover acentos e cedilhas
+		const term = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 		this.items.forEach(item => {
-			const text = item.textContent.toLowerCase();
+			const text = item.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 			if (text.includes(term)) {
 				item.style.display = 'block';
 			} else {
 				item.style.display = 'none';
 			}
 		});
-		this.focusedItemIndex = -1; // Reseta seleção do teclado ao filtrar
+		this.focusedItemIndex = -1; 
 		this.clearItemFocus();
 	}
 	selectItem(item) {
 		this.selectedValue = item.getAttribute('data-value');
 		this.label.textContent = item.textContent;
+		this.btn.title = item.textContent;
 		this.clearBtn.style.display = 'block';
 		this.closeDropdown();
 		const event = new CustomEvent('change', {
@@ -347,7 +366,7 @@ export class CustomSelect {
 	}
 	closeDropdown() {
 		this.dropdown.style.display = 'none';
-		this.focusedItemIndex = -1; // Limpa foco ao fechar
+		this.focusedItemIndex = -1; 
 	}
 	getValue() {
 		return this.selectedValue;
@@ -364,7 +383,8 @@ export class CustomSelect {
 		if (opcaoEncontrada) {
 			this.selectedValue = opcaoEncontrada.value !== undefined ? opcaoEncontrada.value : opcaoEncontrada.text;
 			this.label.textContent = opcaoEncontrada.text;
-			this.clearBtn.style.display = 'block'; // Mostra o botão X de limpar
+			this.btn.title = opcaoEncontrada.text;
+			this.clearBtn.style.display = 'block'; 
 		} else {
 			console.warn(`A opção com o valor "${value}" não foi encontrada no CustomSelect.`);
 		}

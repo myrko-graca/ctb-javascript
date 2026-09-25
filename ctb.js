@@ -40,6 +40,15 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 			spanV: 3, 
 			regras: {obrigatorio: true}
 		}));
+		this.add(new ComboFiltroDOM(null, "cnaePrincipal", {
+			titulo: "CNAE Principal", 
+			spanV: 5, 
+			regras: {obrigatorio: true}
+		}));
+		this.add(new ComboFiltroDOM(null, "cnaeSecundario", {
+			titulo: "CNAE Secundário", 
+			spanV: 5, 
+		}));
 		this.add(new Ativos(this.aba));
 		this.add(new Passivos(this.aba));
 		this.add(new Receitas(this.aba));
@@ -68,11 +77,10 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 	}
 	async carregarDados() {
 		super.carregarDados();
-		let cidadeEstado = this.getComponente("cidadeEstado");
 		if (!this.carregandoDados) {
 			try {
 				this.carregandoDados = true;
-				let res = await fetch("dados/estados-cidades.json?v0.7");
+				let res = await fetch("dados/estados-cidades.json");
 				let obj = await res.json();
 				let opcoes = [];
 				for (let estado of obj.estados) {
@@ -80,9 +88,22 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 						opcoes.push({text: cidade + "/" + estado.sigla});
 					}
 				}
-				cidadeEstado.setOpcoes(opcoes);
+				this.getComponente("cidadeEstado").setOpcoes(opcoes);
 			} catch(erro) {
-				console.error('Erro ao ler o JSON:', erro);
+				console.error('Erro ao ler estados-cidades.json:', erro);
+			}
+			try {
+				this.carregandoDados = true;
+				let res = await fetch("dados/cnae.json");
+				let obj = await res.json();
+				let opcoes = [];
+				for (let key in obj) {
+					opcoes.push({value: key, text: key + " - " + obj[key]});
+				}
+				this.getComponente("cnaePrincipal").setOpcoes(opcoes);
+				this.getComponente("cnaeSecundario").setOpcoes(opcoes);
+			} catch(erro) {
+				console.error('Erro ao ler cnae.json:', erro);
 			}
 		}
 	}
