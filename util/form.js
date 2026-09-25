@@ -315,7 +315,14 @@ export class ObjetoDOM {
 export class ModuloSistemaDOM extends ObjetoDOM {
 	constructor(elemento, nome, obj) {
 		super(elemento, nome, obj);
-	}
+		this.haModificacoes = false;
+		window.addEventListener('beforeunload', (event) => {
+			if (this.haModificacoes) {
+				event.preventDefault();
+				event.returnValue = ''; 
+			}
+		});
+	};
 	getArquivo(hash) {
 		return this._arquivos[hash];
 	}
@@ -345,9 +352,14 @@ export class ModuloSistemaDOM extends ObjetoDOM {
 			this._arquivos = valor._arquivos;
 		}
 		super.setValor(valor[this.nome]);
+		this.haModificacoes = false;
 	}
 	getTipo() {
 		return "modulo";
+	}
+	aoModificar() {
+		super.aoModificar();
+		this.haModificacoes = true;
 	}
 }
 export class ConjuntoDOM extends ObjetoDOM {

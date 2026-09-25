@@ -851,6 +851,7 @@ class RegimeTributario extends ObjetoDOM {
 		let empresaRegular = this.getComponente("empresaRegular");
 		empresaRegular.setVisibilidade(false);
 		tipo.aoModificar = (item) => {
+			super.aoModificar(tipo);
 			let valor = tipo.getValor();
 			if (valor.startsWith("SIMPLES")) {
 				simplesNacional.setVisibilidade(true);
@@ -866,7 +867,7 @@ class RegimeTributario extends ObjetoDOM {
 	}
 	setValor(valor) {
 		super.setValor(valor);
-		this.getComponente("tipo").aoModificar();
+		this.getComponente("tipo").aoModificar(this.getComponente("tipo"));
 	}
 	atualizarCombos() {
 		this.getComponente("simplesNacional").atualizarCombos();

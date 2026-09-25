@@ -1,0 +1,77 @@
+{
+    "anexo": "Anexo IV",
+    "legislacao_base": "Lei Complementar nº 123/2006, art. 18, § 5º-C",
+    "caracteristica_fiscal": "Recolhimento de CPP (20%) feito de forma separada do DAS sobre a folha de pagamento",
+    "grupos_atividades": [
+        {
+            "setor": "Construção Civil e Engenharia",
+            "atividades": [
+                {
+                    "cnae": "4120-4/00",
+                    "descricao": "Construção de edifícios"
+                },
+                {
+                    "cnae": "4211-1/01",
+                    "descricao": "Pavimentação de vias públicas"
+                },
+                {
+                    "cnae": "4299-5/01",
+                    "descricao": "Obras de engenharia civil não especificadas"
+                },
+                {
+                    "cnae": "4321-5/00",
+                    "descricao": "Instalações elétricas em obras"
+                },
+                {
+                    "cnae": "4322-3/01",
+                    "descricao": "Instalações hidráulicas e de gás"
+                },
+                {
+                    "cnae": "4330-4/99",
+                    "descricao": "Obras de acabamento (gesso, pintura, etc.)"
+                }
+            ],
+            "observacao": "Serviços de instalações e acabamentos entram no Anexo IV se vinculados diretamente à execução de uma obra contratada."
+        },
+        {
+            "setor": "Limpeza e Conservação",
+            "atividades": [
+                {
+                    "cnae": "8121-4/00",
+                    "descricao": "Limpeza geral em prédios e domicílios"
+                }
+            ],
+            "observacao": null
+        },
+        {
+            "setor": "Vigilância e Segurança",
+            "atividades": [
+                {
+                    "cnae": "8011-1/01",
+                    "descricao": "Atividades de vigilância e segurança privada"
+                }
+            ],
+            "observacao": null
+        },
+        {
+            "setor": "Paisagismo",
+            "atividades": [
+                {
+                    "cnae": "8130-3/00",
+                    "descricao": "Atividades de paisagismo e manutenção de áreas verdes"
+                }
+            ],
+            "observacao": null
+        },
+        {
+            "setor": "Serviços Advocatícios",
+            "atividades": [
+                {
+                    "cnae": "6911-7/01",
+                    "descricao": "Serviços advocatícios e escritórios de advocacia"
+                }
+            ],
+            "observacao": null
+        }
+    ]
+}
