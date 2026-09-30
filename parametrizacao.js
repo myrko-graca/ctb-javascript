@@ -1,7 +1,6 @@
-import { Modal, ControleAba } from './util/util.js?v0.7';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.7';
-import { FolhaPagamento } from './folhaPagamento.js?v0.7';
-const { jsPDF } = window.jspdf;
+import { Modal, ControleAba } from './util/util.js?v0.8';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.8';
+import { FolhaPagamento } from './folhaPagamento.js?v0.8';
 
 class ContasRequeremQuantidade extends ConjuntoDOM {
 	constructor() {

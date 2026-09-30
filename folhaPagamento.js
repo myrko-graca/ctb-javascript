@@ -1,6 +1,7 @@
-import { Modal, ControleAba } from './util/util.js?v0.7';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.7';
-import { GerenciadorPagamentosContabil } from './pagamentos.js?v0.7';
+import { Modal, ControleAba } from './util/util.js?v0.8';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.8';
+import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.8';
+const { jsPDF } = window.jspdf;
 
 function calcularCRC16(payload) {
 	let crc = 0xFFFF;
@@ -38,9 +39,9 @@ function gerarPayloadPix(chavePix, nomeRecebedor, cidadeRecebedor, valorPagar) {
 function formatarTexto(texto, limite) {
 	if (!texto) return "";
 	const textoFormatado = texto
-		.normalize("NFD")                    // Separa os acentos das letras (ex: "ã" vira "a" + "~")
-		.replace(/[\u0300-\u036f]/g, "")    // Remove os acentos usando Regex
-		.toUpperCase();                     // Coloca tudo em maiúsculo
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toUpperCase();
 	return textoFormatado.substring(0, limite);
 }
 function formatarMoeda(numero) {
@@ -119,7 +120,7 @@ class TiposFuncionarios extends FichasDOM {
 	constructor() {
 		super(null, "tiposFuncionarios", {
 			titulo: "Tipos de Colaboradores",
-			qtdColunas: 4,
+			qtdColunas: 2,
 			spanV: 4,
 			regras: {campoChave: "nome"},
 			ordem: "nome",
@@ -127,40 +128,35 @@ class TiposFuncionarios extends FichasDOM {
 		this.add(new CampoDOM(null, "nome", {
 			titulo: "Nome", 
 			regras: {obrigatorio: true},
-			spanV: 2,
+		}));
+		this.add(new CampoDOM(null, "ehConstrucaoManutencao", {
+			titulo: "É Construção e/ou Manutenção?", 
+			subtipo: "checkbox",
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaSalario", {
 			titulo: "Despesa com salário", 
 			regras: {obrigatorio: true},
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaHorasExtras", {
 			titulo: "Despesa com horas extras", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaAdicionalNoturno", {
 			titulo: "Despesa com com adicional noturno", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaFGTS", {
 			titulo: "Despesa com FGTS", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaVT", {
 			titulo: "Despesa com Vale Transporte", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesa13o", {
 			titulo: "Despesas com Provisão de 13º", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaFeriasTerco", {
 			titulo: "Despesas com Provisão de Férias/Terço", 
-			spanV: 2,
 		}));
 		this.add(new ComboFiltroDOM(null, "contaDespesaFGTSProvisoes", {
 			titulo: "Despesas com FGTS sobre Provisões", 
-			spanV: 2,
 		}));
 	}
 	atualizarCombos(listaContasNaoSinteticas) {
@@ -271,18 +267,20 @@ class Funcionarios extends FichasDOM {
 		this.elemento.insertBefore(bt, this.elemento.lastElementChild);
 		bt.addEventListener("click", (e) => {
 			let regimeTributario = this.pai.pai.getComponente("regimeTributario").getValor().regimeTributario;
+			let folhaPagamento = this.pai.getValor().folhaPagamento;
 			let func = this.getAtual();
 			let empresa = {
 				regimeTributario: regimeTributario.tipo,
-				//aliquotaRat: 0.02,        // 2%
-				//aliquotaTerceiros: 0.058, // 5.8%
+				//aliquotaRat: 0.02,
+				//aliquotaTerceiros: 0.058,
 				//fap: 0.7500               // FAP menor que 1.0 (Bônus por boa segurança)
 			};
 			let calculadora = new GerenciadorPagamentosContabil();
+			let tipoFuncionario = folhaPagamento.tiposFuncionarios.find(t => t.nome == func.tipo);
 			let processamento = calculadora.processarPagamento(func.regime, {
 				salarioBase: Number(func.salarioBase),
 				valorContrato: Number(func.salarioBase),
-				//isConstrucaoOuManutencao: true,
+				isConstrucaoOuManutencao: tipoFuncionario.ehConstrucaoManutencao,
 				jornadaMensal: Number(func.jornadaMensal),
 				qtdHorasExtras: Number(func.qtdHorasExtras),
 				qtdHorasNoturnas: Number(func.qtdHorasNoturnas),
@@ -413,40 +411,65 @@ class Funcionarios extends FichasDOM {
 					totalDescontos += processamento.valores.vt;
 				}
 				// Rodapé de Totais
-				doc.rect(10, 129, 190, 18);
-				doc.line(100, 129, 100, 147); 
-				doc.line(150, 129, 150, 147);
+				doc.rect(10, 129, 190, 9);
+				doc.line(100, 129, 100, 138); 
+				doc.line(150, 129, 150, 138);
 				doc.setFont("courier", "bold");
-				doc.text("Total de Vencimentos", 102, 134); 
-				doc.text("Total de Descontos", 152, 134);
+				doc.text("Total", 88, 134); 
 				doc.setFont("courier", "normal");
-				doc.text(formatarMoeda(totalPagamentos), 148, 142, { align: "right" }); 
-				doc.text(formatarMoeda(totalDescontos), 198, 142, { align: "right" });
+				doc.text(formatarMoeda(totalPagamentos), 148, 134, { align: "right" }); 
+				doc.text(formatarMoeda(totalDescontos), 198, 134, { align: "right" });
 
 				// Bloco do Valor Líquido
-				doc.rect(140, 150, 60, 12);
+				doc.rect(140, 140, 60, 12);
 				doc.setFont("courier", "bold");
-				doc.text("VALOR LÍQUIDO A RECEBER", 142, 154);
+				doc.text("VALOR LÍQUIDO A RECEBER", 142, 144);
 				doc.setFontSize(11);
-				doc.text("R\$ " + formatarMoeda(processamento.valores.liquido), 142, 160);
+				doc.text("R\$ " + formatarMoeda(processamento.valores.liquido), 142, 150);
 
-				// Bases de Cálculo
-				doc.rect(10, 165, 190, 12);
-				doc.line(45, 165, 45, 177); 
-				doc.line(85, 165, 85, 177); 
-				doc.line(125, 165, 125, 177);
-				doc.setFontSize(8); 
+				doc.rect(10, 140, 120, 40);
+				doc.line(10, 146, 130, 146);
+				doc.setFontSize(9);
 				doc.setFont("courier", "bold");
-				doc.text("Salário Base", 12, 169); 
-				doc.text("Base Cálc. INSS", 47, 169); 
-				doc.text("Base Cálc. FGTS", 87, 169); 
-				doc.text("FGTS do Mês", 127, 169);
+				doc.text("Obrigações patronais (R$)", 12, 144);
 				doc.setFont("courier", "normal");
-				doc.text(formatarMoeda(func.salarioBase), 12, 174); 
-				doc.text(formatarMoeda(processamento.valores.bruto), 47, 174); 
-				doc.text(formatarMoeda(processamento.valores.bruto), 87, 174); 
-				doc.text(formatarMoeda(processamento.valores.fgts), 127, 174);
-
+				posy = 150;
+				let total = 0;
+				if (processamento.valores.fgts) {
+					doc.text("FGTS", 12, posy);
+					doc.text(formatarMoeda(processamento.valores.fgts), 125, posy, { align: "right" });
+					posy += 5;
+					total += processamento.valores.fgts;
+				}
+				if (processamento.valores.patronal) {
+					doc.text("INSS", 12, posy);
+					doc.text(formatarMoeda(processamento.valores.patronal), 125, posy, { align: "right" });
+					posy += 5;
+					total += processamento.valores.patronal;
+				}
+				if (processamento.valores.vtPatrao) {
+					doc.text("VALE TRANSPORTE", 12, posy);
+					doc.text(formatarMoeda(processamento.valores.vtPatrao), 125, posy, { align: "right" });
+					posy += 5;
+					total += processamento.valores.vtPatrao;
+				}
+				let provisoes = 0;
+				for (let key in processamento.valores.provisoes) {
+					provisoes += processamento.valores.provisoes[key];
+				}
+				if (provisoes) {
+					doc.text("PROVISÕES (FÉRIAS/FGTS/13)", 12, posy);
+					doc.text(formatarMoeda(provisoes), 125, posy, { align: "right" });
+					posy += 5;
+					total += provisoes;
+				}
+				if (total) {
+					total += totalPagamentos;
+					doc.text("CUSTO TOTAL", 12, posy);
+					doc.text(formatarMoeda(total), 125, posy, { align: "right" });
+					posy += 5;
+				}
+				
 				// --- 4. ADICIONANDO O QR CODE PIX ---
 				doc.setFontSize(8);
 				doc.setFont("courier", "bold");
@@ -510,7 +533,7 @@ class Funcionarios extends FichasDOM {
 				let processamento = calculadora.processarPagamento(func.regime, {
 					salarioBase: valor,
 					valorContrato: valor,
-					//isConstrucaoOuManutencao: true,
+					isConstrucaoOuManutencao: tipoFuncionario.ehConstrucaoManutencao,
 					jornadaMensal: Number(func.jornadaMensal),
 					qtdHorasExtras: Number(func.qtdHorasExtras),
 					qtdHorasNoturnas: Number(func.qtdHorasNoturnas),
