@@ -58,31 +58,40 @@ export class GerenciadorPagamentosContabil {
             ? { valor: irrfLegais, metodo: "Deduções Legais" } 
             : { valor: irrfSimplificado, metodo: "Desconto Simplificado" };
     }
-    _obterAliquotaPatronalEmpresa(emp, tipoTrabalhador) {
-        const regime = (emp.regimeTributario || 'SIMPLES_PADRAO').toUpperCase();
-        
-        if (regime === 'MEI') {
-            return tipoTrabalhador === 'CLT' 
-                ? { patronal: 0.03, rat: 0, terceiros: 0, recolheGps: true } 
-                : { patronal: 0, rat: 0, terceiros: 0, recolheGps: false };
-        }
+	_obterAliquotaPatronalEmpresa(emp, tipoTrabalhador) {
+		const regime = (emp.regimeTributario || 'SIMPLES').toUpperCase();
+		
+		// Regra do MEI com funcionário
+		if (regime === 'MEI') {
+			return tipoTrabalhador === 'CLT' 
+				? { patronal: 0.03, rat: 0, terceiros: 0, recolheGps: true } // Cobra os 3% previstos por lei na folha
+				: { patronal: 0, rat: 0, terceiros: 0, recolheGps: false };
+		}
 
-        if (regime === 'SIMPLES_PADRAO') {
-            return { patronal: 0, rat: 0, terceiros: 0, recolheGps: false };
-        }
+		// Regra Geral do Simples Nacional (Anexos I, II, III e V)
+		if (regime === 'SIMPLES_PADRAO') {
+			return { 
+				patronal: 0,   // É 0% na folha porque o INSS Patronal já está embutido no DAS (faturamento)
+				rat: 0,        // Empresas do Simples Nacional Geral são isentas de RAT direto na folha
+				terceiros: 0,  // Empresas do Simples Nacional são isentas de Terceiros (Sesi, Senai, Sebrae, etc.)
+				recolheGps: false 
+			};
+		}
 
-        if (regime.startsWith('REGULAR') || regime === 'SIMPLES_ANEXO_IV') {
-            const patronalEfetiva = emp.isDesonerada ? 0.00 : this.INSS_PATRONAL_AL;
-            return {
-                patronal: patronalEfetiva, 
-                rat: emp.aliquotaRat || 0,
-                terceiros: emp.aliquotaTerceiros || 0,
-                recolheGps: true
-            };
-        }
+		// Regra do Lucro Presumido/Real OU Simples Nacional Exceção (Anexo IV)
+		if (regime.startsWith('REGULAR') || regime === 'SIMPLES_ANEXO_IV') {
+			const patronalEfetiva = emp.isDesonerada ? 0.00 : this.INSS_PATRONAL_AL;
+			return {
+				patronal: patronalEfetiva, // 20% padrão (ou 0% se desonerada)
+				rat: emp.aliquotaRat || 0,
+				terceiros: emp.aliquotaTerceiros || 0,
+				recolheGps: true
+			};
+		}
 
-        return { patronal: 0, rat: 0, terceiros: 0, recolheGps: false };
-    }
+		return { patronal: 0, rat: 0, terceiros: 0, recolheGps: false };
+	}
+
     _processarCLT(d, emp) {
         const valorHora = d.salarioBase / (d.jornadaMensal || 220);
         const he = this._arredondar((d.qtdHorasExtras || 0) * (valorHora * 1.5));
@@ -310,7 +319,7 @@ export class GerenciadorPagamentosContabil {
     processarPagamento(tipoPagamento, payload, dadosEmpresa = {}) {
         const tipo = (tipoPagamento || '').toUpperCase();
         const empresa = {
-            regimeTributario: dadosEmpresa.regimeTributario || 'SIMPLES_PADRAO',
+            regimeTributario: dadosEmpresa.regimeTributario || 'SIMPLES',
             aliquotaRat: dadosEmpresa.aliquotaRat || 0,
             aliquotaTerceiros: dadosEmpresa.aliquotaTerceiros || 0,
             isDesonerada: dadosEmpresa.isDesonerada || false,
@@ -368,7 +377,7 @@ console.log("\n🔹 [CENÁRIO 2] Funcionário CLT | Empresa: Simples Nacional Ge
 console.log("   👉 Regra: O INSS Patronal, RAT e Terceiros devem sumir dos encargos diretos da folha.");
 
 const empresaSimples = {
-    regimeTributario: 'SIMPLES_PADRAO'
+    regimeTributario: 'SIMPLES'
 };
 
 const c2 = motor.processarPagamento('CLT', funcionarioClt1, empresaSimples);

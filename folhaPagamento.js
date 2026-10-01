@@ -270,7 +270,7 @@ class Funcionarios extends FichasDOM {
 			let folhaPagamento = this.pai.getValor().folhaPagamento;
 			let func = this.getAtual();
 			let empresa = {
-				regimeTributario: regimeTributario.tipo,
+				regimeTributario: regimeTributario.tipo + "_" + regimeTributario.anexo,
 				//aliquotaRat: 0.02,
 				//aliquotaTerceiros: 0.058,
 				//fap: 0.7500               // FAP menor que 1.0 (Bônus por boa segurança)

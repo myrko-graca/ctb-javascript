@@ -441,24 +441,33 @@ console.log("contabilidade", contabilidade);
 
 async function executaAcao(linkDestino) {
 	if (linkDestino === "#abrir") {
+		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma abrir?")) {
+			return;
+		}
 		let obj = await abrirComJanelaNativa();
 		console.log("abrir", obj);
 		contabilidade.setValor(obj);
+		contabilidade.haModificacoes = false;
 	} else if (linkDestino === "#salvar") {
 		let conteudo = contabilidade.getValor();
 		console.log("conteudo", conteudo);
 		let str = JSON.stringify(conteudo);
 		salvarComJanelaNativa(str);
+		contabilidade.haModificacoes = false;
 	} else if (linkDestino === "#novo") {
 		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
 			contabilidade.novo();
 		}
 	} else if (linkDestino === "#contas.json") {
+		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma carregar dados?")) {
+			return;
+		}
 		fetch("dados/contas.json?v0.8")
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
 				contabilidade.setValor(obj);
+				contabilidade.haModificacoes = false;
 			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 		);
 	} else if (linkDestino === "#validar") {

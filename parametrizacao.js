@@ -95,9 +95,19 @@ class SimplesNacional extends ObjetoDOM {
 		});
 		this.add(new CampoDOM(null, "RBT12", {
 			titulo: "RBT12", 
-			atributos: {title: "Faturamento bruto acumulado dos últimos 12 meses"},
+			atributos: {title: "Faturamento bruto acumulado dos últimos 12 meses."},
 			regras: {obrigatorio: true},
 			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "brutoTributavelUltimos12Meses", {
+			titulo: "Pagamentos Brutos Tributáveis", 
+			atributos: {title: "A soma acumulada de todos os salários brutos tributáveis, pró-labores e encargos de FGTS pagos pela empresa nos últimos 12 meses anteriores ao mês de apuração."},
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "anexo", {
+			titulo: "Anexo", 
+			tipo: "select",
+			opcoes: [{value: "ANEXO_I", text: "Anexo I"}, {value: "ANEXO_II", text: "Anexo II"}, {value: "ANEXO_III", text: "Anexo III"}, {value: "ANEXO_IV", text: "Anexo IV"}, {value: "ANEXO_V", text: "Anexo V"}],
 		}));
 		this.add(new CampoDOM(null, "aliquotaNominal", {
 			titulo: "Alíquota Nominal (%)", 
@@ -116,17 +126,25 @@ class SimplesNacional extends ObjetoDOM {
 		this.add(new ComboFiltroDOM(null, "contaReceita", {
 			titulo: "Conta de Receita para Cálculo", 
 			regras: {obrigatorio: true},
-			spanV: 4
+			spanV: 2
 		}));
 		this.add(new ComboFiltroDOM(null, "contaSimplesRecolher", {
 			titulo: "Conta Simples Nacional a Recolher", 
 			regras: {obrigatorio: true},
-			spanV: 4
+			spanV: 2
 		}));
 		this.add(new ComboFiltroDOM(null, "contaSimplesAbatimento", {
 			titulo: "Conta Simples Nacional de Abatimento", 
 			regras: {obrigatorio: true},
-			spanV: 4
+			spanV: 2
+		}));
+		this.add(new ComboFiltroDOM(null, "contaCppRecolher", {
+			titulo: "Conta INSS Patronal a Recolher", 
+			spanV: 2
+		}));
+		this.add(new ComboFiltroDOM(null, "contaCppAbatimento", {
+			titulo: "Conta de Despesa com INSS", 
+			spanV: 2
 		}));
 	}
 	atualizarCombos() {
@@ -134,7 +152,9 @@ class SimplesNacional extends ObjetoDOM {
 		this.getComponente("contaReceita").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.")));
 		listaContas = this.pai.pai.listaContasNaoSinteticas;
 		this.getComponente("contaSimplesRecolher").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
+		this.getComponente("contaCppRecolher").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
 		this.getComponente("contaSimplesAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
+		this.getComponente("contaCppAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
 	}
 	aoModificar(item) {
 		super.aoModificar(this);
@@ -159,6 +179,83 @@ class SimplesNacional extends ObjetoDOM {
 		let aliquotaEfetiva = (RBT12 * aliquotaNominal - parcelaDeduzir) / RBT12;
 		aliquotaEfetiva *= 100;
 		this.getComponente("aliquotaEfetiva").setValor(aliquotaEfetiva.toFixed(2));
+	}
+	gerarLancamentosProvisao() {
+		let simplesNacional = this.getValor().simplesNacional;
+		let lancamentos = this.getModuloSistema().getComponente("lancamentoContabil").getComponente("efetuarLancamento");
+		let contaReceita = this.getModuloSistema().localizaConta(simplesNacional.contaReceita);
+		let valorFaturamentoMes = Number(contaReceita.getComponente("saldo").getValor());
+		let rbt12 = Number(simplesNacional.faturamentoUltimos12Meses || 0);
+		let folha12 = Number(simplesNacional.brutoTributavelUltimos12Meses || 0);
+		let anexoEfetivo = (simplesNacional.anexo || '').toUpperCase();
+		// Se a empresa for de uma atividade sujeita ao Fator R (flutua entre III e V)
+		if (anexoEfetivo === 'ANEXO_III' || anexoEfetivo === 'ANEXO_V') {
+			if (rbt12 > 0) {
+				let proporcaoFatorR = folha12 / rbt12; // Divide os salários pelo faturamento
+				// Se a folha for 28% ou mais do faturamento, força Anexo III (Barato), se não, Anexo V (Caro)
+				anexoEfetivo = (proporcaoFatorR >= 0.28) ? 'ANEXO_III' : 'ANEXO_V';
+			}
+		}
+		let perc = Number(simplesNacional.aliquotaEfetiva) / 100.0;
+		let valorDasTotal = valorFaturamentoMes * perc;
+		// Lançamento do Crédito Principal (DAS a Recolher)
+		let reg = lancamentos.getComponenteConta(lancamentos.getComponente("creditos"), simplesNacional.contaSimplesRecolher);
+		reg.getComponente("valor").setValor(valorDasTotal.toFixed(2));
+		// Lançamento do Débito Principal (Abatimento/Dedução da Receita)
+		if (simplesNacional.contaSimplesAbatimento) {
+			let regDeb = lancamentos.getComponenteConta(lancamentos.getComponente("debitos"), simplesNacional.contaSimplesAbatimento);
+			if (!regDeb) {
+				regDeb = lancamentos.getComponente("debitos").novo();
+			}
+			regDeb.getComponente("conta").setValor(simplesNacional.contaSimplesAbatimento);
+			regDeb.getComponente("valor").setValor(valorDasTotal.toFixed(2));
+			lancamentos.getComponente("debitos").removerVazios();
+		}
+		// Segregação Contábil do INSS Patronal (CPP) embutido no DAS
+		if (simplesNacional.contaCppRecolher) {
+			const REPARTICAO_CPP = {
+				ANEXO_I:   [{ limite: 180000, p: 0.4150 }, { limite: 360000, p: 0.4150 }, { limite: 720000, p: 0.4150 }, { limite: 1800000, p: 0.4150 }, { limite: 3600000, p: 0.4150 }, { limite: 4800000, p: 0.2300 }],
+				ANEXO_II:  [{ limite: 180000, p: 0.2600 }, { limite: 360000, p: 0.2600 }, { limite: 720000, p: 0.2600 }, { limite: 1800000, p: 0.2600 }, { limite: 3600000, p: 0.2600 }, { limite: 4800000, p: 0.1450 }],
+				ANEXO_III: [{ limite: 180000, p: 0.4340 }, { limite: 360000, p: 0.4340 }, { limite: 720000, p: 0.4340 }, { limite: 1800000, p: 0.4340 }, { limite: 3600000, p: 0.4340 }, { limite: 4800000, p: 0.3060 }],
+				ANEXO_IV:  [{ limite: Infinity, p: 0.0000 }], 
+				ANEXO_V:   [{ limite: 180000, p: 0.2885 }, { limite: 360000, p: 0.2885 }, { limite: 720000, p: 0.2885 }, { limite: 1800000, p: 0.2885 }, { limite: 3600000, p: 0.2885 }, { limite: 4800000, p: 0.2442 }]
+			};
+			const faixas = REPARTICAO_CPP[anexoEfetivo]; // Usa o anexo decidido pelo Fator R
+			if (faixas) {
+				let faixaCorrespondente = faixas[faixas.length - 1];
+				for (let i = 0; i < faixas.length; i++) {
+					if (rbt12 <= faixas[i].limite) {
+						faixaCorrespondente = faixas[i];
+						break;
+					}
+				}
+				let valorCpp = valorDasTotal * faixaCorrespondente.p;
+				if (valorCpp > 0) {
+					let regCppCred = lancamentos.getComponenteConta(lancamentos.getComponente("creditos"), simplesNacional.contaCppRecolher);
+					if (!regCppCred) {
+						regCppCred = lancamentos.getComponente("creditos").novo();
+					}
+					regCppCred.getComponente("conta").setValor(simplesNacional.contaCppRecolher);
+					regCppCred.getComponente("valor").setValor(valorCpp.toFixed(2));
+					let novoValorSimplesRecolher = valorDasTotal - valorCpp;
+					reg.getComponente("valor").setValor(novoValorSimplesRecolher.toFixed(2));
+					if (simplesNacional.contaCppAbatimento) {
+						let regCppDeb = lancamentos.getComponenteConta(lancamentos.getComponente("debitos"), simplesNacional.contaCppAbatimento);
+						if (!regCppDeb) {
+							regCppDeb = lancamentos.getComponente("debitos").novo();
+						}
+						regCppDeb.getComponente("conta").setValor(simplesNacional.contaCppAbatimento);
+						regCppDeb.getComponente("valor").setValor(valorCpp.toFixed(2));
+						let regDebOriginal = lancamentos.getComponenteConta(lancamentos.getComponente("debitos"), simplesNacional.contaSimplesAbatimento);
+						if (regDebOriginal) {
+							regDebOriginal.getComponente("valor").setValor(novoValorSimplesRecolher.toFixed(2));
+						}
+					}
+					lancamentos.getComponente("creditos").removerVazios();
+					lancamentos.getComponente("debitos").removerVazios();
+				}
+			}
+		}
 	}
 }
 class EmpresaRegular extends ObjetoDOM {
@@ -193,8 +290,7 @@ class RegimeTributario extends ObjetoDOM {
 				{value: "REGULAR_LP", text: "Lucro Presumido"}, 
 				{value: "REGULAR_LR", text: "Lucro Real"}, 
 				{value: "MEI", text: "MEI"}, 
-				{value: "SIMPLES_PADRAO", text: "Simples Nacional (padrão)"}, 
-				{value: "SIMPLES_ANEXO_IV", text: "Simples Nacional (anexo IV)"},
+				{value: "SIMPLES", text: "Simples Nacional"}, 
 			]
 		}));
 		let simplesNacional = new SimplesNacional();
@@ -261,7 +357,9 @@ class Servicos extends FichasDOM {
 				let opcoes = [];
 				console.log("nbs", obj);
 				for (let key in obj) {
-					opcoes.push({value: key, text: key + " - " + obj[key]});
+					if (key.length == 12) {
+						opcoes.push({value: key, text: key + " - " + obj[key]});
+					}
 				}				
 				this.getComponente("nbs").setOpcoes(opcoes);
 			} catch(erro) {
@@ -299,11 +397,31 @@ class Produtos extends FichasDOM {
 				let res = await fetch("dados/ncms.json");
 				let obj = await res.json();
 				let opcoes = [];
-				console.log("ncms", obj);
 				let ncms = obj.Nomenclaturas;
 				for (let ncm of ncms) {
-					opcoes.push({value: ncm.Codigo, text: ncm.Codigo + " - " + ncm.Descricao});
+					/* código para salvar ajustado
+					let desc = ncm.Descricao.replaceAll("<i>", "").replaceAll("</i>", "").replaceAll("<sup>", "").replaceAll("</sup>", "");
+					let cod = ncm.Codigo.replaceAll(".", "");
+					if (desc[0] == '-' || desc == "Outros" || desc == "Outras") {
+						for (let i = cod.length - 1; i > 0; i--) {
+							let ncmAux = ncms.find(n => n.Codigo.replaceAll(".", "") == cod.substring(0, i));
+							if (ncmAux) {
+								if (desc[0] == '-') {
+									desc = ncmAux.Descricao + " " + desc;
+								} else {
+									desc = ncmAux.Descricao + " - " + desc;
+								}
+								break;
+							}
+						}
+					}
+					ncm.Descricao = desc;
+					*/
+					if (ncm.Codigo.length == 10) {
+						opcoes.push({value: ncm.Codigo, text: ncm.Codigo + " - " + ncm.Descricao});
+					}
 				}				
+				console.log("ncms", obj);
 				this.getComponente("ncm").setOpcoes(opcoes);
 			} catch(erro) {
 				console.error('Erro ao ler ncms.json:', erro);

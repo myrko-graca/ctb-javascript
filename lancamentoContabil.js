@@ -248,29 +248,12 @@ class EfetuarLancamentoContabil extends ObjetoDOM {
 		bt.title = "Calcula valor a a pagar do simples";
 		bt.addEventListener("click", (e) => {
 			let conteudo = this.getValor().efetuarLancamento;
-			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("simplesNacional").getValor().simplesNacional;
-			if (conteudo.creditos) {
-				if (conteudo.creditos.some(reg => simplesNacional.contaSimplesRecolher == reg.conta)) {
-					let contaReceita = this.getModuloSistema().localizaConta(simplesNacional.contaReceita);
-					let valor = Number(contaReceita.getComponente("saldo").getValor());
-					let perc = Number(simplesNacional.aliquotaEfetiva) / 100.0;
-					valor *= perc;
-					let reg = this.getComponenteConta(this.getComponente("creditos"), simplesNacional.contaSimplesRecolher);
-					reg.getComponente("valor").setValor(valor.toFixed(2));
-					if (simplesNacional.contaSimplesAbatimento) {
-						let regDeb = this.getComponenteConta(this.getComponente("debitos"), simplesNacional.contaSimplesAbatimento);
-						if (!regDeb) {
-							regDeb = this.getComponente("debitos").novo();
-						}
-						regDeb.getComponente("conta").setValor(simplesNacional.contaSimplesAbatimento);
-						regDeb.getComponente("valor").setValor(valor.toFixed(2));
-						this.getComponente("debitos").removerVazios();
-					}
-				}
+			let simplesNacional = this.getModuloSistema().getComponente("parametrizacao").getComponente("regimeTributario").getComponente("simplesNacional");
+			if (conteudo.creditos && conteudo.creditos.some(reg => simplesNacional.getValor().simplesNacional.contaSimplesRecolher == reg.conta)) {
+				simplesNacional.gerarLancamentosProvisao()
 			}
 		});
 		this.elemento.appendChild(bt);
-
 		bt = document.createElement("button");
 		bt.textContent = "Limpar";
 		bt.addEventListener("click", (e) => {
