@@ -1,6 +1,6 @@
-import { Modal, ControleAba } from './util/util.js?v0.8';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.8';
-import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.8';
+import { Modal, ControleAba } from './util/util.js?vc1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
+import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.9';
 const { jsPDF } = window.jspdf;
 
 function calcularCRC16(payload) {
@@ -58,6 +58,7 @@ export class FolhaPagamento extends ObjetoDOM {
 			qtdColunas: 4
 		});
 		this.aba = aba;
+		this.abaFolha = new ControleAba(document.getElementById("abaFolha"));
 		this.add(new ComboFiltroDOM(null, "contaFGTSARecolher", {
 			titulo: "FGTS a recolher", 
 			spanV: 2,
@@ -86,8 +87,8 @@ export class FolhaPagamento extends ObjetoDOM {
 			titulo: "FGTS Prov. Férias/Terço/13º a Recolher", 
 			spanV: 2,
 		}));
-		this.add(new TiposFuncionarios(this.aba));
-		this.add(new Funcionarios(this.aba));
+		this.add(new TiposFuncionarios(this.abaFolha));
+		this.add(new Funcionarios(this.abaFolha));
 	}
 	atualizarCombos() {
 		let listaContasAtivo = this.pai.listaContas.filter(lc => lc.value.startsWith("1."));
@@ -114,6 +115,7 @@ export class FolhaPagamento extends ObjetoDOM {
 	focar() {
 		super.focar();
 		this.aba.alternar("abaFolha");
+		this.abaFolha("abaParametros");
 	}
 }
 class TiposFuncionarios extends FichasDOM {
@@ -169,6 +171,10 @@ class TiposFuncionarios extends FichasDOM {
 		this.getComponente("contaDespesa13o").setOpcoes(lista);
 		this.getComponente("contaDespesaFeriasTerco").setOpcoes(lista);
 		this.getComponente("contaDespesaFGTSProvisoes").setOpcoes(lista);
+	}
+	focar() {
+		super.focar();
+		this.aba("abaParametros");
 	}
 }
 class FeriasFuncionario extends ConjuntoDOM {

@@ -4,8 +4,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script src="./externo/jspdf.umd.min.js"></script>
 		<script src="./externo/qrcode.min.js"></script>
-		<link rel="stylesheet" href="ctb.css?v0.8">
-		<script type="module" src="ctb.js?v0.8"></script>
+		<link rel="stylesheet" href="ctb.css?v0.9">
+		<script type="module" src="ctb.js?v0.9"></script>
 		<title>Contabilidade Simples em Javascript</title>
 		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI0Y4RkFGQyIvPgogIDxyZWN0IHg9IjUiIHk9IjIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI2IiBmaWxsPSIjOTNDNUZEIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMTMuNSIgeT0iMTQiIHdpZHRoPSI1IiBoZWlnaHQ9IjEyIiBmaWxsPSIjNjBBNUZBIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMjIiIHk9IjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjE4IiBmaWxsPSIjMjU2M0VCIiBzdG9wLWNvbG9yPSIjMjU2M0VCIiByeD0iMS41Ii8+CiAgPHBhdGggZD0iTTcuNSAyMCBMMTYgMTQgTDI0LjUgOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTBCOTgxIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5LjUgOCBIMjQuNSBWMTMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=" />
 	</head>
@@ -80,8 +80,7 @@
 		<div id="abaParametros" class="aba" style="padding: 0px">
 			<nav class="navAba">
 				<button data-aba="abaBasica" data-ativo>Basico</button>
-				<button data-aba="abaFolha">Folha</button>
-				<button data-aba="abaFuncionarios">Colaboradores</button>
+				<button data-aba="abaFolha">Folha de Pagamentos</button>
 				<button data-aba="abaProdutos">Produtos</button>
 				<button data-aba="abaServicos">Serviços</button>
 				<button data-aba="abaMaquinasEquipamentos">Máquinas e Equipamentos</button>
@@ -91,21 +90,47 @@
 				<div id="parametros">
 				</div>
 			</div>
-			<div id="abaFolha" class="aba">
-				<fieldset id="folhaPagamento">
-				</fieldset>
+			<div id="abaFolha" class="aba" style="padding: 0px">
+				<nav class="navAba">
+					<button data-aba="abaParametrosFolha" data-ativo>Parâmetros</button>
+					<button data-aba="abaFuncionarios">Colaboradores</button>
+				</nav>
+				<div id="abaParametrosFolha" class="aba">
+					<fieldset id="folhaPagamento">
+					</fieldset>
+				</div>
+				<div id="abaFuncionarios" class="aba">
+					<fieldset id="funcionarios">
+					</fieldset>
+				</div>
 			</div>
-			<div id="abaFuncionarios" class="aba">
-				<fieldset id="funcionarios">
-				</fieldset>
+			<div id="abaProdutos" class="aba" style="padding: 0px">
+				<nav class="navAba">
+					<button data-aba="abaParametrosProdutos" data-ativo>Parâmetros</button>
+					<button data-aba="abaDetalhesProdutos">Cadastro</button>
+				</nav>
+				<div id="abaParametrosProdutos" class="aba">
+					<fieldset id="parametrosProdutos">
+					</fieldset>
+				</div>
+				<div id="abaDetalhesProdutos" class="aba">
+					<fieldset id="produtos">
+					</fieldset>
+				</div>
 			</div>
-			<div id="abaProdutos" class="aba">
-				<fieldset id="produtos">
-				</fieldset>
-			</div>
-			<div id="abaServicos" class="aba">
-				<fieldset id="servicos">
-				</fieldset>
+			<div id="abaServicos" class="aba" style="padding: 0px">
+				<nav class="navAba">
+					<button data-aba="abaParametrosServicos" data-ativo>Parâmetros</button>
+					<button data-aba="abaCadastroServicos">Cadastro</button>
+				</nav>
+				<div id="abaParametrosServicos" class="aba">
+					<fieldset id="servicos">
+					</fieldset>
+				</div>
+				<div id="abaCadastroServicos" class="aba">
+					<fieldset id="cadastroServicos">
+					</fieldset>
+				</div>
 			</div>
 			<div id="abaMaquinasEquipamentos" class="aba">
 				<fieldset id="maquinasEquipamentos">

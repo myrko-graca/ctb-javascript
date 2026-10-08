@@ -1,6 +1,7 @@
-import { Modal, ControleAba } from './util/util.js?v0.8';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?v0.8';
-import { FolhaPagamento } from './folhaPagamento.js?v0.8';
+import { Modal, ControleAba } from './util/util.js?vc1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
+import { FolhaPagamento } from './folhaPagamento.js?v0.9';
+import { Servicos } from './servicos.js?v0.9';
 
 class ContasRequeremQuantidade extends ConjuntoDOM {
 	constructor() {
@@ -94,13 +95,13 @@ class SimplesNacional extends ObjetoDOM {
 			qtdColunas: 4,
 		});
 		this.add(new CampoDOM(null, "RBT12", {
-			titulo: "RBT12", 
+			titulo: "RBT12 (R$)", 
 			atributos: {title: "Faturamento bruto acumulado dos últimos 12 meses."},
 			regras: {obrigatorio: true},
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "brutoTributavelUltimos12Meses", {
-			titulo: "Pagamentos Brutos Tributáveis", 
+			titulo: "Pagamentos Brutos Tributáveis (R$)", 
 			atributos: {title: "A soma acumulada de todos os salários brutos tributáveis, pró-labores e encargos de FGTS pagos pela empresa nos últimos 12 meses anteriores ao mês de apuração."},
 			subtipo: "number",
 		}));
@@ -115,7 +116,7 @@ class SimplesNacional extends ObjetoDOM {
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "parcelaDeduzir", {
-			titulo: "Parcela a Deduzir", 
+			titulo: "Parcela a Deduzir (R$)", 
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "aliquotaEfetiva", {
@@ -260,22 +261,65 @@ class SimplesNacional extends ObjetoDOM {
 }
 class EmpresaRegular extends ObjetoDOM {
 	constructor() {
-		super(null, "empresaRegular", {titulo: "Empresa Regular", qtdColunas: 2});
+		super(null, "empresaRegular", {titulo: "Empresa Regular", qtdColunas: 4});
+		this.add(new CampoDOM(null, "aliquotaIRPJ", {
+			titulo: "IRPJ (%)",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "alioquotaCSLL", {
+			titulo: "CSLL (%)",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "aliquotaPIS", {
+			titulo: "PIS (%)",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "aliquotaCOFINS", {
+			titulo: "COFINS (%)",
+			subtipo: "number",
+		}));
 		this.add(new CampoDOM(null, "aliquotaRat", {
-			titulo: "Alíquota RAT",
+			titulo: "Alíquota RAT (%)",
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "aliquotaTerceiros", {
-			titulo: "Alíquota de Terceiros",
+			titulo: "Alíquota de Terceiros (%)",
 			subtipo: "number",
 		}));
-		this.add(new CampoDOM(null, "fap", {
-			titulo: "FAP",
+		this.add(new CampoDOM(null, "aliquotaFAP", {
+			titulo: "FAP (%)",
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "desonerada", {
 			titulo: "Desonerada?",
 			subtipo: "checkbox",
+		}));
+		this.add(new CampoDOM(null, "sofreRetencaoFonte", {
+			titulo: "Sofre Retenção na Fonte?",
+			subtipo: "checkbox",
+		}));
+		this.add(new CampoDOM(null, "aliquotaRetIRRF", {
+			titulo: "IRRF Retido na Fonte (%)",
+			subtipo: "number",
+		}));
+		this.add(new CampoDOM(null, "aliquotaRetCSRF", {
+			titulo: "CSRF Retido na Fonte (%)",
+			subtipo: "number",
+		}));
+		
+	}
+}
+class EmpresaLucroPresumido extends ObjetoDOM {
+	constructor() {
+		super(null, "empresaLP", {titulo: "Empresa de Lucro Presumido", qtdColunas: 4});
+		this.add(new CampoDOM(null, "faturamentoAcumuladoTrimestre", {
+			titulo: "Faturamento Acumulado no Trimestre (R$)",
+			subtipo: "number",
+			spanV: 3,
+		}));
+		this.add(new CampoDOM(null, "percentualPresuncao", {
+			titulo: "Percentual Presumido (%)",
+			subtipo: "number",
 		}));
 	}
 }
@@ -297,6 +341,8 @@ class RegimeTributario extends ObjetoDOM {
 		this.add(simplesNacional);
 		let empresaRegular = new EmpresaRegular();
 		this.add(empresaRegular);
+		let empresaLP = new EmpresaLucroPresumido();
+		this.add(empresaLP);
 	}
 	init() {
 		let tipo = this.getComponente("tipo");
@@ -304,6 +350,8 @@ class RegimeTributario extends ObjetoDOM {
 		simplesNacional.setVisibilidade(false);
 		let empresaRegular = this.getComponente("empresaRegular");
 		empresaRegular.setVisibilidade(false);
+		let empresaLP = this.getComponente("empresaLP");
+		empresaLP.setVisibilidade(false);
 		tipo.aoModificar = (item) => {
 			super.aoModificar(tipo);
 			let valor = tipo.getValor();
@@ -317,6 +365,11 @@ class RegimeTributario extends ObjetoDOM {
 			} else {
 				empresaRegular.setVisibilidade(false);
 			}
+			if (valor == "REGULAR_LP") {
+				empresaLP.setVisibilidade(true);
+			} else {
+				empresaLP.setVisibilidade(false);
+			}
 		};
 	}
 	setValor(valor) {
@@ -325,48 +378,6 @@ class RegimeTributario extends ObjetoDOM {
 	}
 	atualizarCombos() {
 		this.getComponente("simplesNacional").atualizarCombos();
-	}
-}
-class Servicos extends FichasDOM {
-	constructor(aba) {
-		let elemento = document.getElementById("servicos");
-		super(elemento, "servicos", {
-			titulo: "Serviços", 
-			qtdColunas: 10,
-			regras: {campoChave: "descricao"},
-			ordem: "descricao",
-		});
-		this.aba = aba;
-		this.add(new CampoDOM(null, "descricao", {
-			titulo: "Descrição", 
-			spanV: 5,
-			regras: {obrigatorio: true}
-		}));
-		this.add(new ComboFiltroDOM(null, "nbs", {
-			titulo: "NBS", 
-			spanV: 5,
-			regras: {obrigatorio: true}
-		}));
-	}
-	async carregarDados() {
-		if (!this.carregandoDados) {
-			try {
-				this.carregandoDados = true;
-				let res = await fetch("dados/nbs.json");
-				let obj = await res.json();
-				let opcoes = [];
-				console.log("nbs", obj);
-				for (let key in obj) {
-					if (key.length == 12) {
-						opcoes.push({value: key, text: key + " - " + obj[key]});
-					}
-				}				
-				this.getComponente("nbs").setOpcoes(opcoes);
-			} catch(erro) {
-				console.error('Erro ao ler nbs.json:', erro);
-			}
-		}		
-		super.carregarDados();
 	}
 }
 class Produtos extends FichasDOM {
@@ -378,6 +389,7 @@ class Produtos extends FichasDOM {
 			regras: {campoChave: "descricao"},
 			ordem: "descricao",
 		});
+		this.abaProdutos = new ControleAba(document.getElementById("abaProdutos"));
 		this.aba = aba;
 		this.add(new CampoDOM(null, "descricao", {
 			titulo: "Descrição", 
@@ -394,7 +406,7 @@ class Produtos extends FichasDOM {
 		if (!this.carregandoDados) {
 			try {
 				this.carregandoDados = true;
-				let res = await fetch("dados/ncms.json");
+				let res = await fetch("dados/ncms.json?vd1");
 				let obj = await res.json();
 				let opcoes = [];
 				let ncms = obj.Nomenclaturas;
@@ -435,25 +447,27 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		let elemento = document.getElementById("parametros");
 		super(elemento, "parametrizacao");
 		this.aba = aba;
-		this.abaLancamentos = new ControleAba(document.getElementById("abaParametros"));
+		this.abaParametrizacao = new ControleAba(document.getElementById("abaParametros"));
 		this.listaContas = [];
 		this.listaContasNaoSinteticas = [];
 		let regimeTributario = new RegimeTributario();
 		this.add(regimeTributario);
-		let folhaPagamento = new FolhaPagamento(this.abaLancamentos);
+		let folhaPagamento = new FolhaPagamento(this.abaParametrizacao);
 		this.add(folhaPagamento);
 		let contasDepreciacao = new ContasDepreciacao();
 		this.add(contasDepreciacao);
 		let contasQuantidade = new ContasRequeremQuantidade();
 		this.add(contasQuantidade);
-		let servicos = new Servicos();
+		let servicos = new Servicos(aba);
 		this.add(servicos);
-		let produtos = new Produtos();
+		let produtos = new Produtos(aba);
 		this.add(produtos);
-		this.abaLancamentos.aoAlterar = (aba) => {
+		this.abaParametrizacao.aoAlterar = (aba) => {
 			if (aba == "abaFuncionarios") {
 				folhaPagamento.atualizarFuncionarios();
-			}
+			} else if (aba == "abaServicos") {
+				servicos.atualizarCombos();
+			};
 		};
 	}
 	setValor(valor) {
@@ -479,6 +493,6 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 	focar() {
 		super.focar();
 		this.aba.alternar("abaParametros");
-		this.abaLancamentos.alternar("abaBasica");
+		this.abaParametrizacao.alternar("abaBasica");
 	}
 }

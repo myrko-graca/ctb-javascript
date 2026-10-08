@@ -50,8 +50,12 @@ export class CustomSelect {
 		this.label.style.whiteSpace = "nowrap";
 		this.label.style.overflow = "hidden";
 		this.label.style.textOverflow = "ellipsis"; 
-		this.label.style.minWidth = "0"; 				
-		this.label.textContent = this.placeholder;
+		this.label.style.minWidth = "0";
+		if (this.placeholder) {
+			this.label.textContent = this.placeholder;
+			this.label.style.color = "gray";
+			this.label.style.fontStyle = "italic";
+		}
 		this.btn.appendChild(this.label);
 
 		const actionsContainer = document.createElement('div');
@@ -206,7 +210,13 @@ export class CustomSelect {
 	}
 	clearSelection() {
 		this.selectedValue = null;
-		this.label.textContent = this.placeholder;
+		if (this.placeholder) {
+			this.label.textContent = this.placeholder;
+			this.label.style.color = "gray";
+			this.label.style.fontStyle = "italic";
+		} else {
+			this.label.textContent = "";
+		}
 		this.btn.title = '';
 		this.clearBtn.style.display = 'none'; 
 	}
@@ -363,6 +373,8 @@ export class CustomSelect {
 			detail: { value: this.selectedValue, text: item.textContent }
 		});
 		this.elemento.dispatchEvent(event);
+		this.label.style.color = "";
+		this.label.style.fontStyle = "";
 	}
 	closeDropdown() {
 		this.dropdown.style.display = 'none';
@@ -376,6 +388,8 @@ export class CustomSelect {
 			this.clearSelection();
 			return;
 		}
+		this.label.style.color = "";
+		this.label.style.fontStyle = "";
 		const opcaoEncontrada = this.options?.find(opt => {
 			const optValue = opt.value !== undefined ? opt.value : opt.text;
 			return String(optValue) === String(value);

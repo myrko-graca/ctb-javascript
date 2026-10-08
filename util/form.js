@@ -1,4 +1,4 @@
-import { CustomSelect } from './customselect.js?v0.7';
+import { CustomSelect } from './customselect.js?v0.8';
 console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
 if (!document.querySelector("style[id='estilo_form']")) {
@@ -920,7 +920,7 @@ export class ComboFiltroDOM extends ObjetoDOM {
 		}
 		super(elementoPai, nome, obj);
 		elemento.style.height = "30px";
-		this.cs = new CustomSelect(elemento, obj); 
+		this.cs = new CustomSelect(elemento, obj);
 		let label = this.elemento.querySelector("label");
 		if (label) {
 			label.appendChild(elemento);
