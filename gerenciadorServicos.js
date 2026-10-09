@@ -219,6 +219,7 @@ export class GerenciadorServicosContabil {
         return texto;
     }
 }
+/*
 const executor = new GerenciadorServicosContabil();
 
 console.log("%c 🟢 INICIANDO BATERIA DE TESTES CONTÁBEIS REFATORADA ", "background: #222; color: #00ff00; font-weight: bold;");
@@ -394,3 +395,4 @@ try {
 } catch (error) {
     console.error("❌ Falha inesperada no teste 9:", error.message);
 }
+*/

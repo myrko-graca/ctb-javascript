@@ -2,6 +2,7 @@ import { Modal, ControleAba } from './util/util.js?vc1';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
 import { FolhaPagamento } from './folhaPagamento.js?v0.9';
 import { Servicos } from './servicos.js?v0.9';
+import { Produtos } from './produtos.js?v0.9';
 
 class ContasRequeremQuantidade extends ConjuntoDOM {
 	constructor() {
@@ -147,6 +148,11 @@ class SimplesNacional extends ObjetoDOM {
 			titulo: "Conta de Despesa com INSS", 
 			spanV: 2
 		}));
+		this.add(new ComboFiltroDOM(null, "recuperarISS", {
+			titulo: "ISS Retido a Recuperar", 
+			placeholder: "Usado quando for Simples Nacional com Anexo IV",
+			spanV: 2,
+		}));
 	}
 	atualizarCombos() {
 		let listaContas = this.pai.pai.listaContas;
@@ -156,6 +162,7 @@ class SimplesNacional extends ObjetoDOM {
 		this.getComponente("contaCppRecolher").setOpcoes(listaContas.filter(lc => lc.value.startsWith("2.")));
 		this.getComponente("contaSimplesAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
 		this.getComponente("contaCppAbatimento").setOpcoes(listaContas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4.")));
+		this.getComponente("recuperarISS").setOpcoes(listaContas.filter(lc => lc.value.startsWith("1.")));
 	}
 	aoModificar(item) {
 		super.aoModificar(this);
@@ -185,6 +192,10 @@ class SimplesNacional extends ObjetoDOM {
 		let simplesNacional = this.getValor().simplesNacional;
 		let lancamentos = this.getModuloSistema().getComponente("lancamentoContabil").getComponente("efetuarLancamento");
 		let contaReceita = this.getModuloSistema().localizaConta(simplesNacional.contaReceita);
+		let contaSimples = this.getModuloSistema().localizaConta(simplesNacional.contaSimplesRecolher);
+		if (Number(contaSimples.getComponente("saldo").getValor()) > 0) {
+			throw new Error("Não é possível calcular o Simples Nacional, pois existe valor do imposto a recolher");
+		}
 		let valorFaturamentoMes = Number(contaReceita.getComponente("saldo").getValor());
 		let rbt12 = Number(simplesNacional.faturamentoUltimos12Meses || 0);
 		let folha12 = Number(simplesNacional.brutoTributavelUltimos12Meses || 0);
@@ -262,6 +273,51 @@ class SimplesNacional extends ObjetoDOM {
 class EmpresaRegular extends ObjetoDOM {
 	constructor() {
 		super(null, "empresaRegular", {titulo: "Empresa Regular", qtdColunas: 4});
+		
+		this.add(new ComboFiltroDOM(null, "despesaISS", {
+			titulo: "ISS sobre Serviços", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recolherISS", {
+			titulo: "ISS a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "despesaPIS", {
+			titulo: "PIS sobre Faturamento", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recolherPIS", {
+			titulo: "PIS a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "despesaCOFINS", {
+			titulo: "COFINS sobre Faturamento", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recolherCOFINS", {
+			titulo: "COFINS a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "despesaIRPJ", {
+			titulo: "IRPJ", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recolherIRPJ", {
+			titulo: "IRPJ a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "despesaCSLL", {
+			titulo: "CSLL", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recolherCSLL", {
+			titulo: "CSLL a Recolher", 
+			spanV: 2,
+		}));
+		this.add(new ComboFiltroDOM(null, "recuperarCSRF", {
+			titulo: "CSRF Retida a Recuperar", 
+			spanV: 2,
+		}));
 		this.add(new CampoDOM(null, "aliquotaIRPJ", {
 			titulo: "IRPJ (%)",
 			subtipo: "number",
@@ -306,7 +362,27 @@ class EmpresaRegular extends ObjetoDOM {
 			titulo: "CSRF Retido na Fonte (%)",
 			subtipo: "number",
 		}));
-		
+	}
+	atualizarCombos() {
+		let listaContasResultado = this.pai.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4."));
+		let listaContasPassivo = this.pai.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
+		let listaContasAtivo = this.pai.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("1."));
+		this.getComponente("despesaISS").setOpcoes(listaContasResultado);
+		this.getComponente("recolherISS").setOpcoes(listaContasPassivo);
+		this.getComponente("despesaPIS").setOpcoes(listaContasResultado);
+		this.getComponente("recolherPIS").setOpcoes(listaContasPassivo);
+		this.getComponente("despesaCOFINS").setOpcoes(listaContasResultado);
+		this.getComponente("recolherCOFINS").setOpcoes(listaContasPassivo);
+		this.getComponente("despesaIRPJ").setOpcoes(listaContasResultado);
+		this.getComponente("recolherIRPJ").setOpcoes(listaContasPassivo);
+		this.getComponente("despesaCSLL").setOpcoes(listaContasResultado);
+		this.getComponente("recolherCSLL").setOpcoes(listaContasPassivo);
+		//TODO: ver outras contas "a recuperar"
+		this.getComponente("recuperarCSRF").setOpcoes(listaContasAtivo);
+	}
+	setValor(valor) {
+		this.atualizarCombos();
+		super.setValor(valor);
 	}
 }
 class EmpresaLucroPresumido extends ObjetoDOM {
@@ -378,68 +454,6 @@ class RegimeTributario extends ObjetoDOM {
 	}
 	atualizarCombos() {
 		this.getComponente("simplesNacional").atualizarCombos();
-	}
-}
-class Produtos extends FichasDOM {
-	constructor(aba) {
-		let elemento = document.getElementById("produtos");
-		super(elemento, "produtos", {
-			titulo: "Produtos", 
-			qtdColunas: 10,
-			regras: {campoChave: "descricao"},
-			ordem: "descricao",
-		});
-		this.abaProdutos = new ControleAba(document.getElementById("abaProdutos"));
-		this.aba = aba;
-		this.add(new CampoDOM(null, "descricao", {
-			titulo: "Descrição", 
-			spanV: 5,
-			regras: {obrigatorio: true}
-		}));
-		this.add(new ComboFiltroDOM(null, "ncm", {
-			titulo: "NCM", 
-			spanV: 5,
-			regras: {obrigatorio: true}
-		}));
-	}
-	async carregarDados() {
-		if (!this.carregandoDados) {
-			try {
-				this.carregandoDados = true;
-				let res = await fetch("dados/ncms.json?vd1");
-				let obj = await res.json();
-				let opcoes = [];
-				let ncms = obj.Nomenclaturas;
-				for (let ncm of ncms) {
-					/* código para salvar ajustado
-					let desc = ncm.Descricao.replaceAll("<i>", "").replaceAll("</i>", "").replaceAll("<sup>", "").replaceAll("</sup>", "");
-					let cod = ncm.Codigo.replaceAll(".", "");
-					if (desc[0] == '-' || desc == "Outros" || desc == "Outras") {
-						for (let i = cod.length - 1; i > 0; i--) {
-							let ncmAux = ncms.find(n => n.Codigo.replaceAll(".", "") == cod.substring(0, i));
-							if (ncmAux) {
-								if (desc[0] == '-') {
-									desc = ncmAux.Descricao + " " + desc;
-								} else {
-									desc = ncmAux.Descricao + " - " + desc;
-								}
-								break;
-							}
-						}
-					}
-					ncm.Descricao = desc;
-					*/
-					if (ncm.Codigo.length == 10) {
-						opcoes.push({value: ncm.Codigo, text: ncm.Codigo + " - " + ncm.Descricao});
-					}
-				}				
-				console.log("ncms", obj);
-				this.getComponente("ncm").setOpcoes(opcoes);
-			} catch(erro) {
-				console.error('Erro ao ler ncms.json:', erro);
-			}
-		}		
-		super.carregarDados();
 	}
 }
 export class ParametrizacaoCTB extends ObjetoDOM {

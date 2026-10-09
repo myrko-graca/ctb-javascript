@@ -2,13 +2,12 @@ import { Modal, ControleAba } from './util/util.js?vc1';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
 import { GerenciadorServicosContabil } from './gerenciadorServicos.js?v0.9';
 
-class CadastroServicos extends FichasDOM {
+export class Servicos extends FichasDOM {
 	constructor(aba) {
-		let elemento = document.getElementById("cadastroServicos");
+		let elemento = document.getElementById("servicos");
 		super(elemento, "cadastro", {
 			titulo: "Serviços", 
 			qtdColunas: 10,
-			spanV: 10,
 			regras: {campoChave: "descricao"},
 			ordem: "descricao",
 		});
@@ -28,11 +27,14 @@ class CadastroServicos extends FichasDOM {
 			spanV: 5,
 			regras: {obrigatorio: true}
 		}));
+		this.add(new ComboFiltroDOM(null, "contaAndamento", {
+			titulo: "Serviços em Andamento / Aplicados", 
+			spanV: 5,
+		}));
 		//TODO: talvez separar em Mão de Obra Direta, Materiais Diretos, Serviços de Terceiros, Custos Indiretos
 		this.add(new ComboFiltroDOM(null, "contaDespesa", {
 			titulo: "Custo do Serviço Prestado", 
 			spanV: 5,
-			regras: {obrigatorio: true}
 		}));
 		this.add(new CampoDOM(null, "aliquotaISS", {
 			titulo: "ISS (%)", 
@@ -48,7 +50,7 @@ class CadastroServicos extends FichasDOM {
 		div.appendChild(bt);
 		bt.addEventListener("click", async (e) => {
 			let lancamento = this.getModuloSistema().getComponente("lancamentoContabil").getComponente("efetuarLancamento");
-			let regimeTributario = this.pai.pai.getComponente("regimeTributario").getValor().regimeTributario;
+			let regimeTributario = this.pai.getComponente("regimeTributario").getValor().regimeTributario;
 			let empresa = {
 				regimeTributario: regimeTributario.tipo,
 			};
@@ -57,7 +59,7 @@ class CadastroServicos extends FichasDOM {
 			console.log("dadosDigitados", dadosDigitados);
 			let gerenciador = new GerenciadorServicosContabil();
 			try {
-				let t1 = gerenciador.processarServico({
+				let proc = gerenciador.processarServico({
 					regimeTributario: regimeTributario.tipo,
 					valorTotalServico: dadosDigitados.valorTotalServico,
 					descontoConcedido: dadosDigitados.descontoConcedido,
@@ -69,14 +71,98 @@ class CadastroServicos extends FichasDOM {
 					aliquotaCofins: Number(regimeTributario.empresaRegular.aliquotaCOFINS),  
 					aliquotaIrpj: Number(regimeTributario.empresaRegular.aliquotaIRPJ),  
 					aliquotaCsll: Number(regimeTributario.empresaRegular.alioquotaCSLL),  
-					percentualAVista: 100,			
-					//aliquotaSimplesEfetiva: 8.2, //Simples
-					//sofreRetencaoFonte: true,
-					//aliquotaRetIrrf
-					//aliquotaRetCsrf
-					percentualAVista: 100
+					aliquotaSimplesEfetiva: Number(regimeTributario.simplesNacional.aliquotaEfetiva),  
+					sofreRetencaoFonte: regimeTributario.empresaRegular.sofreRetencaoFonte,
+					aliquotaRetIrrf: regimeTributario.empresaRegular.aliquotaRetIRRF,
+					aliquotaRetCsrf: regimeTributario.empresaRegular.aliquotaRetCSRF,
 				});
-				console.log("t1", t1);
+				lancamento.getComponente("debitos").limpar(true);
+				lancamento.getComponente("creditos").limpar(true);
+				if (servico.contaReceita && proc.valores.valorComDesconto) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(servico.contaDespesa);
+					reg.getComponente("valor").setValor(proc.valores.valorComDesconto);
+				}
+				if (servico.contaDespesa && proc.valores.custoServicoPrestado) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(servico.contaDespesa);
+					reg.getComponente("valor").setValor(proc.valores.custoServicoPrestado);
+				}
+				if (servico.contaAndamento && proc.valores.custoServicoPrestado) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(servico.contaAndamento);
+					reg.getComponente("valor").setValor(proc.valores.custoServicoPrestado);
+				}
+				if (regimeTributario.empresaRegular.despesaISS && proc.valores.iss) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.despesaISS);
+					reg.getComponente("valor").setValor(proc.valores.iss);
+				}
+				if (regimeTributario.empresaRegular.recolherISS && proc.valores.iss) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recolherISS);
+					reg.getComponente("valor").setValor(proc.valores.iss);
+				}
+				if (regimeTributario.empresaRegular.despesaPIS && proc.valores.pis) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.despesaPIS);
+					reg.getComponente("valor").setValor(proc.valores.pis);
+				}
+				if (regimeTributario.empresaRegular.recolherPIS && proc.valores.pis) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recolherPIS);
+					reg.getComponente("valor").setValor(proc.valores.pis);
+				}
+				if (regimeTributario.empresaRegular.despesaCOFINS && proc.valores.cofins) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.despesaCOFINS);
+					reg.getComponente("valor").setValor(proc.valores.cofins);
+				}
+				if (regimeTributario.empresaRegular.recolherCOFINS && proc.valores.cofins) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recolherCOFINS);
+					reg.getComponente("valor").setValor(proc.valores.cofins);
+				}
+				let irpj = proc.valores.irpj + proc.valores.irpjAdicional;
+				if (regimeTributario.empresaRegular.despesaIRPJ && irpj) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.despesaIRPJ);
+					reg.getComponente("valor").setValor(irpj);
+				}
+				if (regimeTributario.empresaRegular.recolherIRPJ && irpj) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recolherIRPJ);
+					reg.getComponente("valor").setValor(irpj);
+				}
+				if (regimeTributario.empresaRegular.despesaCSLL && proc.valores.csll) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.despesaCSLL);
+					reg.getComponente("valor").setValor(proc.valores.csll);
+				}
+				if (regimeTributario.empresaRegular.recolherCSLL && proc.valores.csll) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recolherCSLL);
+					reg.getComponente("valor").setValor(proc.valores.csll);
+				}
+				/* TODO: ver outros retidos também
+				if (regimeTributario.empresaRegular.recuperarCSRF && proc.valores.csrfRetido) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.empresaRegular.recuperarCSRF);
+					reg.getComponente("valor").setValor(proc.valores.csrfRetido);
+				}*/
+				if (regimeTributario.simplesNacional.contaSimplesAbatimento && proc.valores.valorDasSimples) {
+					let reg = lancamento.getComponente("debitos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.simplesNacional.contaSimplesAbatimento);
+					reg.getComponente("valor").setValor(proc.valores.valorDasSimples);
+				}
+				if (regimeTributario.simplesNacional.contaSimplesRecolher && proc.valores.valorDasSimples) {
+					let reg = lancamento.getComponente("creditos").novo();
+					reg.getComponente("conta").setValor(regimeTributario.simplesNacional.contaSimplesRecolher);
+					reg.getComponente("valor").setValor(proc.valores.valorDasSimples);
+				}
+				lancamento.focar();
+				new Modal().mostrar("Lançamento Prestação de Serviço", "Complete com o pagamento recebido (caixa, bancos, clientes, etc.)");
+				console.log("proc", proc);
 			} catch (error) {
 				console.error("🔴 Bloqueado com sucesso:", error.message);
 			}
@@ -176,99 +262,12 @@ class CadastroServicos extends FichasDOM {
 		super.carregarDados();
 	}
 	atualizarCombos() {
-		let listaContasResultado = this.pai.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("3."));
-		this.getComponente("contaReceita").setOpcoes(listaContasResultado);
-		let listaContasDespesa = this.pai.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4."));
-		this.getComponente("contaDespesa").setOpcoes(listaContasDespesa);
-	}
-}
-export class Servicos extends ObjetoDOM {
-	constructor(aba) {
-		let elemento = document.getElementById("servicos");
-		super(elemento, "servicos", {
-			titulo: "Serviços", 
-			qtdColunas: 10,
-		});
-		this.aba = aba;
-		this.abaServicos = new ControleAba(document.getElementById("abaServicos"));
-		this.add(new ComboFiltroDOM(null, "despesaISS", {
-			titulo: "ISS sobre Serviços", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recolherISS", {
-			titulo: "ISS a Recolher", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "despesaPIS", {
-			titulo: "PIS sobre Faturamento", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recolherPIS", {
-			titulo: "PIS a Recolher", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "despesaCOFINS", {
-			titulo: "COFINS sobre Faturamento", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recolherCOFINS", {
-			titulo: "COFINS a Recolher", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "despesaIRPJ", {
-			titulo: "IRPJ", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recolherIRPJ", {
-			titulo: "IRPJ a Recolher", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "despesaCSLL", {
-			titulo: "CSLL", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recolherCSLL", {
-			titulo: "CSLL a Recolher", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recuperarCSRF", {
-			titulo: "CSRF Retida a Recuperar", 
-			spanV: 5,
-		}));
-		this.add(new ComboFiltroDOM(null, "recuperarISS", {
-			titulo: "ISS Retido a Recuperar", 
-			placeholder: "Usado quando for Simples Nacional com Anexo IV",
-			spanV: 5,
-		}));
-		this.add(new CadastroServicos());
-	}
-	init() {
-		this.abaServicos.aoAlterar = (aba) => {
-			if (aba == "abaCadastroServicos") {
-				this.getComponente("cadastro").atualizarCombos();
-			}
-		}
-	}
-	atualizarCombos() {
-		let listaContasResultado = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("3.") || lc.value.startsWith("4."));
-		let listaContasPassivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("2."));
-		let listaContasAtivo = this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("1."));
-		this.getComponente("despesaISS").setOpcoes(listaContasResultado);
-		this.getComponente("recolherISS").setOpcoes(listaContasPassivo);
-		this.getComponente("despesaPIS").setOpcoes(listaContasResultado);
-		this.getComponente("recolherPIS").setOpcoes(listaContasPassivo);
-		this.getComponente("despesaCOFINS").setOpcoes(listaContasResultado);
-		this.getComponente("recolherCOFINS").setOpcoes(listaContasPassivo);
-		this.getComponente("despesaIRPJ").setOpcoes(listaContasResultado);
-		this.getComponente("recolherIRPJ").setOpcoes(listaContasPassivo);
-		this.getComponente("despesaCSLL").setOpcoes(listaContasResultado);
-		this.getComponente("recolherCSLL").setOpcoes(listaContasPassivo);
-		this.getComponente("recuperarCSRF").setOpcoes(listaContasAtivo);
-		this.getComponente("recuperarISS").setOpcoes(listaContasAtivo);
+		this.getComponente("contaReceita").setOpcoes(this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("3.")));
+		this.getComponente("contaAndamento").setOpcoes(this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("1.")));
+		this.getComponente("contaDespesa").setOpcoes(this.pai.listaContasNaoSinteticas.filter(lc => lc.value.startsWith("4.")));
 	}
 	setValor(valor) {
 		this.atualizarCombos();
-		this.getComponente("cadastro").atualizarCombos();
 		super.setValor(valor);
 	}
 }

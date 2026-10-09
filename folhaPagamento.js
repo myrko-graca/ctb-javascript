@@ -267,19 +267,23 @@ class Funcionarios extends FichasDOM {
 			subtipo: "number",
 		}));
 		this.add(new FeriasFuncionario());
+
+		let div = document.createElement("div");
+		div.style = "grid-column: span 10; padding-left: 20px; padding-top: 20px";
+		this.elemento.insertBefore(div, this.elemento.lastElementChild);	
 		let bt = document.createElement("button");
 		bt.className = "btn btn-plus";
 		bt.textContent = "Gerar pdf";
-		this.elemento.insertBefore(bt, this.elemento.lastElementChild);
-		bt.addEventListener("click", (e) => {
+		div.appendChild(bt);
+		bt.addEventListener("click", async (e) => {
 			let regimeTributario = this.pai.pai.getComponente("regimeTributario").getValor().regimeTributario;
 			let folhaPagamento = this.pai.getValor().folhaPagamento;
 			let func = this.getAtual();
 			let empresa = {
 				regimeTributario: regimeTributario.tipo + "_" + regimeTributario.anexo,
-				//aliquotaRat: 0.02,
-				//aliquotaTerceiros: 0.058,
-				//fap: 0.7500               // FAP menor que 1.0 (Bônus por boa segurança)
+				aliquotaRat: regimeTributario.empresaRegular.aliquotaRat,
+				aliquotaTerceiros: regimeTributario.empresaRegular.aliquotaTerceiros,
+				fap: regimeTributario.empresaRegular.fap,
 			};
 			let calculadora = new GerenciadorPagamentosContabil();
 			let tipoFuncionario = folhaPagamento.tiposFuncionarios.find(t => t.nome == func.tipo);
@@ -301,7 +305,8 @@ class Funcionarios extends FichasDOM {
 			let endereco = sistema.getComponente("endereco").getValor();
 			let cidade = sistema.getComponente("cidadeEstado").getValor();
 			let ano = sistema.getComponente("ano").getValor();
-			let mes = document.getElementById("mes_processamento").value;
+			const dadosDigitados = await this.obterValoresPagamento();
+			let mes = dadosDigitados.mes;
 			let codigo = func.contaPassivo.split(".").reverse()[0];
 			let nomePix = formatarTexto(func.nome, 25);
 			let cidadePix = formatarTexto(cidade, 15);
@@ -502,29 +507,26 @@ class Funcionarios extends FichasDOM {
 		bt = document.createElement("button");
 		bt.className = "btn btn-plus";
 		bt.textContent = "Gerar pagamento";
-		this.elemento.insertBefore(bt, this.elemento.lastElementChild);
+		div.appendChild(bt);
 		
-		let edMes = document.createElement("input");
-		edMes.id = "mes_processamento";
-		edMes.type = "number";
-		edMes.title = "Mês para processamento";
-		edMes.value = new Date().getMonth();
-		this.elemento.insertBefore(edMes, this.elemento.lastElementChild);
-		
-		bt.addEventListener("click", (e) => {
+		bt.addEventListener("click", async (e) => {
 			let lancamento = this.getModuloSistema().getComponente("lancamentoContabil").getComponente("efetuarLancamento");
 			let folhaPagamento = this.pai.getValor().folhaPagamento;
 			let regimeTributario = this.pai.pai.getComponente("regimeTributario").getValor().regimeTributario;
 			let empresa = {
-				regimeTributario: regimeTributario.tipo,
+				regimeTributario: regimeTributario.tipo + "_" + regimeTributario.anexo,
+				aliquotaRat: regimeTributario.empresaRegular.aliquotaRat,
+				aliquotaTerceiros: regimeTributario.empresaRegular.aliquotaTerceiros,
+				fap: regimeTributario.empresaRegular.fap,
 			};
 			let func = this.getAtual();
 			let ano = this.getModuloSistema().getComponente("ano").getValor();
-			let mes = document.getElementById("mes_processamento").value;
+			const dadosDigitados = await this.obterValoresPagamento();
+			let mes = dadosDigitados.mes;
 			let data = new Date(ano, mes, 0);
 			lancamento.getComponente("data").setValor(data.toISOString().slice(0, 10));
 			lancamento.getComponente("descricao").setValor("Pagamento de " + func.nome);
-			lancamento.getComponente("creditos").limpar(true);			
+			lancamento.getComponente("creditos").limpar(true);
 			let reg = lancamento.getComponente("creditos").novo();
 			let valor = Number(func.salarioBase);
 			reg.getComponente("conta").setValor(func.contaPassivo);
@@ -648,6 +650,68 @@ class Funcionarios extends FichasDOM {
 				console.log(processamento.lancamentosContabeis);
 			}
 			lancamento.focar();
+		});
+	}
+	obterValoresPagamento() {
+		return new Promise((resolve, reject) => {
+			const modal = document.createElement('dialog');
+			Object.assign(modal.style, {
+				border: 'none',
+				borderRadius: '8px',
+				boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+				padding: '24px',
+				width: '320px',
+				fontFamily: 'Arial, sans-serif'
+			});
+			const estiloBackdrop = document.createElement('style');
+			estiloBackdrop.textContent = `
+				dialog::backdrop { background-color: rgba(0, 0, 0, 0.5); }
+				.modal-field { margin-bottom: 15px; }
+				.modal-field label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #333; }
+				.modal-field input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+				.modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+				.modal-btns button { padding: 8px 16px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
+				.btn-env { background-color: #28a745; color: white; }
+				.btn-can { background-color: #dc3545; color: white; }
+			`;
+			document.head.appendChild(estiloBackdrop);
+			modal.innerHTML = `
+				<h3 style="margin-top: 0; color: #111;">Dados do Serviço</h3>
+				<form method="dialog" id="jsModalForm">
+					<div class="modal-field">
+						<label>Mês de referência:</label>
+						<input type="number" id="jsMes" min="0" required autofocus>
+					</div>
+					<div class="modal-btns">
+						<button type="button" id="jsBtnCancelar" class="btn-can">Cancelar</button>
+						<button type="submit" class="btn-env">Processar</button>
+					</div>
+				</form>
+			`;
+			document.body.appendChild(modal);
+			modal.showModal();
+			const form = modal.querySelector('#jsModalForm');
+			const btnCancelar = modal.querySelector('#jsBtnCancelar');
+			form.addEventListener('submit', () => {
+				const dados = {
+					mes: parseFloat(modal.querySelector('#jsMes').value),
+				};
+				fecharELimpar();
+				resolve(dados); // Retorna os dados para quem chamou a função
+			});
+			btnCancelar.addEventListener('click', () => {
+				fecharELimpar();
+				reject(new Error("Operação cancelada pelo usuário."));
+			});
+			modal.addEventListener('cancel', () => {
+				fecharELimpar();
+				reject(new Error("Operação cancelada pelo usuário."));
+			});
+			function fecharELimpar() {
+				modal.close();
+				modal.remove();
+				estiloBackdrop.remove();
+			}
 		});
 	}
 	atualizarCombos(listaContasNaoSinteticas) {
