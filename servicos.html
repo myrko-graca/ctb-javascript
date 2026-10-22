@@ -1,0 +1,55 @@
+<html lang="pt-br" class="notranslate" translate="no">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="./externo/jspdf.umd.min.js"></script>
+		<script src="./externo/qrcode.min.js"></script>
+		<link rel="stylesheet" href="ctb.css?v0.9">
+		<script type="module" src="servicos.js?v0.9"></script>
+		<title>Módulo de Serviços da Contabilidade Simples em Javascript</title>
+		<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI0Y4RkFGQyIvPgogIDxyZWN0IHg9IjUiIHk9IjIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI2IiBmaWxsPSIjOTNDNUZEIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMTMuNSIgeT0iMTQiIHdpZHRoPSI1IiBoZWlnaHQ9IjEyIiBmaWxsPSIjNjBBNUZBIiByeD0iMS41Ii8+CiAgPHJlY3QgeD0iMjIiIHk9IjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjE4IiBmaWxsPSIjMjU2M0VCIiBzdG9wLWNvbG9yPSIjMjU2M0VCIiByeD0iMS41Ii8+CiAgPHBhdGggZD0iTTcuNSAyMCBMMTYgMTQgTDI0LjUgOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTBCOTgxIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5LjUgOCBIMjQuNSBWMTMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwQjk4MSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=" />
+	</head>
+	<body style="margin:0px" hidden>
+		<header class="header">
+			<a href="#" class="logo">Contabilidade Simples</a>
+			<nav id="nav">
+			  <ul class="menu">
+				<li class="dropdown-item">
+				  <a href="#" class="dropdown-toggle">Arquivo <span class="arrow">▼</span></a>
+				  <ul class="dropdown-menu">
+					<li><a href="#abrir">Abrir</a></li>
+					<li><a href="#salvar">Salvar</a></li>
+					<li><a href="#novo">Novo</a></li>
+					<li class="divider"></li>
+					<li><a href="#contas.json">Abrir teste</a></li>
+				  </ul>
+				</li>
+				<li><a href="#validar">Validar</a></li>
+				<li class="dropdown-item">
+				  <a href="#" class="dropdown-toggle">Configurações <span class="arrow">▼</span></a>
+				  <ul class="dropdown-menu">
+					<li><a href="#refazerLancamentos">Refazer Lançamentos</a></li>
+					<li><a href="#consolidarAno">Consolidar Ano Anterior</a></li>
+				  </ul>
+				</li>
+				<li><a href="#ajuda">Ajuda</a></li>
+				<li><a href="#sobre">Sobre</a></li>
+			  </ul>
+			</nav>
+			<button id="btn-mobile" aria-expanded="false" aria-label="Abrir Menu">
+			  <span id="hamburger"></span>
+			</button>    
+		</header>
+		<nav class="navAba">
+			<button data-aba="abaServicos" data-ativo>Serviços</button>
+		</nav>
+		<div id="abaServicos" class="aba">
+			<div id="servicos">
+			</div>
+		</div>
+		<div id="abaErros" class="aba">
+			<ul id="mensagens"></ul>
+		</div>
+		<div id="qrcode-hidden" style="display:none;"></div>
+	</body>
+</html>

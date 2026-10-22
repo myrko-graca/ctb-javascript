@@ -1,6 +1,7 @@
 import { Modal, ControleAba } from './util/util.js?vc1';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
 import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.9';
+import { NavigationMenu } from './util/menu.js?vc1';
 const { jsPDF } = window.jspdf;
 
 function calcularCRC16(payload) {
@@ -50,15 +51,14 @@ function formatarMoeda(numero) {
     maximumFractionDigits: 2
   }).format(numero);
 }
-export class FolhaPagamento extends ObjetoDOM {
+class FolhaPagamento extends ModuloSistemaDOM {
 	constructor(aba) {
 		let elemento = document.getElementById("folhaPagamento");
 		super(elemento, "folhaPagamento", {
 			titulo: "Folha de Pagamento",
 			qtdColunas: 4
 		});
-		this.aba = aba;
-		this.abaFolha = new ControleAba(document.getElementById("abaFolha"));
+		this.aba = new ControleAba(document.body);
 		this.add(new ComboFiltroDOM(null, "contaFGTSARecolher", {
 			titulo: "FGTS a recolher", 
 			spanV: 2,
@@ -736,3 +736,14 @@ class Funcionarios extends FichasDOM {
 		this.aba.alternar("abaFuncionarios");
 	}
 }
+let folha = new FolhaPagamento(document.getElementById("folhaPagamento"));
+await folha.carregarDados();
+document.body.hidden = false;
+console.log("folha", folha);
+const meuMenu = new NavigationMenu(
+  'nav', 
+  'btn-mobile', 
+  '.dropdown-toggle', 
+  '.dropdown-item', 
+  acaoAoClicar
+);

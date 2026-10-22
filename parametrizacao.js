@@ -1,7 +1,5 @@
 import { Modal, ControleAba } from './util/util.js?vc1';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
-import { FolhaPagamento } from './folhaPagamento.js?v0.9';
-import { Servicos } from './servicos.js?v0.9';
 import { Produtos } from './produtos.js?v0.9';
 
 class ContasRequeremQuantidade extends ConjuntoDOM {
@@ -466,23 +464,12 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.listaContasNaoSinteticas = [];
 		let regimeTributario = new RegimeTributario();
 		this.add(regimeTributario);
-		let folhaPagamento = new FolhaPagamento(this.abaParametrizacao);
-		this.add(folhaPagamento);
 		let contasDepreciacao = new ContasDepreciacao();
 		this.add(contasDepreciacao);
 		let contasQuantidade = new ContasRequeremQuantidade();
 		this.add(contasQuantidade);
-		let servicos = new Servicos(aba);
-		this.add(servicos);
 		let produtos = new Produtos(aba);
 		this.add(produtos);
-		this.abaParametrizacao.aoAlterar = (aba) => {
-			if (aba == "abaFuncionarios") {
-				folhaPagamento.atualizarFuncionarios();
-			} else if (aba == "abaServicos") {
-				servicos.atualizarCombos();
-			};
-		};
 	}
 	setValor(valor) {
 		let listaContas = this.getModuloSistema().getListaContas();
@@ -502,7 +489,6 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.getComponente("regimeTributario").atualizarCombos();
 		this.getComponente("contasRequeremQuantidade").atualizarCombos();
 		this.getComponente("contasDepreciacao").atualizarCombos();
-		this.getComponente("folhaPagamento").atualizarCombos();
 	}
 	focar() {
 		super.focar();

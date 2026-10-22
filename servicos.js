@@ -1,17 +1,26 @@
 import { Modal, ControleAba } from './util/util.js?vc1';
 import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
+import { NavigationMenu } from './util/menu.js?vc1';
 import { GerenciadorServicosContabil } from './gerenciadorServicos.js?v0.9';
 
-export class Servicos extends FichasDOM {
-	constructor(aba) {
+class Servicos extends ModuloSistemaDOM {
+	constructor() {
 		let elemento = document.getElementById("servicos");
-		super(elemento, "cadastro", {
-			titulo: "Serviços", 
+		super(elemento);
+		this.aba = new ControleAba(document.body);
+		this.add(new TiposServicos());
+	}
+}
+class TiposServicos extends FichasDOM {
+	constructor() {
+		let elemento = document.getElementById("tipos_servicos");
+		super(elemento, "servicos", {
+			titulo: "Tipos de Serviços", 
 			qtdColunas: 10,
 			regras: {campoChave: "descricao"},
 			ordem: "descricao",
 		});
-		this.aba = aba;
+		this.aba = new ControleAba(document.body);
 		this.add(new CampoDOM(null, "descricao", {
 			titulo: "Descrição", 
 			spanV: 5,
@@ -271,3 +280,75 @@ export class Servicos extends FichasDOM {
 		super.setValor(valor);
 	}
 }
+let servicos = new Servicos();
+await servicos.carregarDados();
+document.body.hidden = false;
+async function executaAcao(linkDestino) {
+	if (linkDestino === "#abrir") {
+		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma abrir?")) {
+			return;
+		}
+		let obj = await abrirComJanelaNativa();
+		console.log("abrir", obj);
+		contabilidade.setValor(obj);
+		contabilidade.haModificacoes = false;
+	} else if (linkDestino === "#salvar") {
+		let conteudo = contabilidade.getValor();
+		console.log("conteudo", conteudo);
+		let str = JSON.stringify(conteudo);
+		salvarComJanelaNativa(str);
+		contabilidade.haModificacoes = false;
+	} else if (linkDestino === "#novo") {
+		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
+			contabilidade.novo();
+		}
+	} else if (linkDestino === "#contas.json") {
+		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma carregar dados?")) {
+			return;
+		}
+		fetch("dados/contas.json?v0.9")
+			.then(resposta => resposta.json())
+			.then(obj => {
+				console.log(obj);
+				contabilidade.setValor(obj);
+				contabilidade.haModificacoes = false;
+			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
+		);
+	} else if (linkDestino === "#validar") {
+		let lista = contabilidade.validar();
+		if (lista.length == 0) {
+			new Modal().mostrar("Validação", "Validação não encontrou erros");
+		}
+	} else if (linkDestino === "#refazerLancamentos") {
+		contabilidade.refazerLancamentos();
+	} else if (linkDestino === "#consolidarAno") {
+		consolidarAno();
+	} else if (linkDestino === "#ajuda") {
+		fetch("ajuda.html?v0.9")
+			.then(resposta => resposta.text())
+			.then(html => {
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(html, 'text/html');
+				let textoAjuda = doc.body.innerHTML;
+				textoAjuda += "<br><a href='ajuda.html' target='_blank'>Abrir ajuda em outra janela</a>";
+				new Modal().mostrar("Ajuda da Contabilidade Simples em Javascript", textoAjuda); 
+			}).catch(erro => console.error('Erro ao ler o help:', erro)
+		);
+	} else if (linkDestino === "#sobre") {
+		let versao = "?v0.9";
+		new Modal().mostrar("Contabilidade Simples (versão " + versao.replace("?v", "") + ")", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça"); 
+	}
+}
+async function acaoAoClicar(event, elementoClicado) {
+	const textoDoLink = elementoClicado.textContent;
+	const linkDestino = elementoClicado.getAttribute('href');
+	console.log(`Você clicou no menu: ${textoDoLink} que aponta para: ${linkDestino}`);
+	executaAcao(linkDestino);
+}
+const meuMenu = new NavigationMenu(
+  'nav', 
+  'btn-mobile', 
+  '.dropdown-toggle', 
+  '.dropdown-item', 
+  acaoAoClicar
+);
