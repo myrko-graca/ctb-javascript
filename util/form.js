@@ -1,4 +1,4 @@
-import { Modal, ControleAba } from '../util/util.js?vc1';
+import { Modal, ControleAba } from '../util/util.js?vc1.1';
 import { CustomSelect } from './customselect.js?v0.8';
 console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
@@ -453,19 +453,17 @@ export class ModuloSistemaDOM extends ObjetoDOM {
 					});
 					ul.appendChild(li);
 				}
+				if (lista.length == 0) {
+					new Modal().mostrar("Validação", "Validação não encontrou erros");
+				}
 			} else {
 				throw new Error("É necessário definir 'abaErros'");
 			}
-		} else {
-			throw new Error("É necessário definir componente de aba");
-		}
-		if (lista.length == 0) {
-			new Modal().mostrar("Validação", "Validação não encontrou erros");
 		}
 		return lista;
 	}
 	mostrarAjuda(arquivo, titulo, versao) {
-		fetch("ajuda.html?v0.9")
+		fetch("ajuda.html?v0.91")
 			.then(resposta => resposta.text())
 			.then(html => {
 				const parser = new DOMParser();
@@ -554,7 +552,6 @@ export class ConjuntoDOM extends ObjetoDOM {
 		for (let item of this.componentes) {
 			if (item.modelo) {
 				let c = item.clonar();
-				console.log("novo", this.nome, item.nome, item.getSomenteLeitura());
 				if (item.getSomenteLeitura()) {
 					c.setSomenteLeitura(true);
 				}
@@ -933,7 +930,11 @@ export class FichasDOM extends ObjetoDOM {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
 		}
 		if (valor && this.obj.ordem) {
-			valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
+			if (this.obj.ordemDesc) {
+				valor.sort((a, b) => b[this.obj.ordem].localeCompare(a[this.obj.ordem]));
+			} else {
+				valor.sort((a, b) => a[this.obj.ordem].localeCompare(b[this.obj.ordem]));
+			}
 		}
 		if (valor.length > 0) {
 			this.limpar();

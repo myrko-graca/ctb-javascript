@@ -1,7 +1,7 @@
-import { Modal, ControleAba } from './util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
-import { NavigationMenu } from './util/menu.js?vc1';
-import { GerenciadorServicosContabil } from './gerenciadorServicos.js?v0.9';
+import { Modal, ControleAba } from './util/util.js?vc1.1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1.1';
+import { NavigationMenu } from './util/menu.js?vc1.1';
+import { GerenciadorServicosContabil } from './gerenciadorServicos.js?v0.91';
 
 class Servicos extends ModuloSistemaDOM {
 	constructor() {
@@ -306,7 +306,7 @@ async function executaAcao(linkDestino) {
 		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma carregar dados?")) {
 			return;
 		}
-		fetch("dados/contas.json?v0.9")
+		fetch("dados/contas.json?v0.91")
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
@@ -324,7 +324,7 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	} else if (linkDestino === "#ajuda") {
-		fetch("ajuda.html?v0.9")
+		fetch("ajuda.html?v0.91")
 			.then(resposta => resposta.text())
 			.then(html => {
 				const parser = new DOMParser();
@@ -335,7 +335,7 @@ async function executaAcao(linkDestino) {
 			}).catch(erro => console.error('Erro ao ler o help:', erro)
 		);
 	} else if (linkDestino === "#sobre") {
-		let versao = "?v0.9";
+		let versao = "?v0.91";
 		new Modal().mostrar("Contabilidade Simples (versão " + versao.replace("?v", "") + ")", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça"); 
 	}
 }

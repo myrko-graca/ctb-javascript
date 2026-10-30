@@ -1,7 +1,8 @@
-import { Modal, ControleAba } from '../util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1';
-import { NavigationMenu } from '../util/menu.js?vc1';
-import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.9';
+import { Modal, ControleAba } from '../util/util.js?vc1.1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1.1';
+import { Endereco } from '../util/endereco.js?vc1.1';
+import { NavigationMenu } from '../util/menu.js?vc1.1';
+import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.91';
 const { jsPDF } = window.jspdf;
 
 let ehCelular = window.innerWidth <= 768;
@@ -241,6 +242,13 @@ class Funcionarios extends FichasDOM {
 			spanV: 3,
 			regras: {obrigatorio: true},
 		}));
+		this.add(new CampoArquivo(null, "foto", {
+			titulo: "Foto", 
+		}));
+		this.add(new Endereco(null, "endereco", {
+			spanV: 8,
+			regras: {obrigatorio: true},
+		}));
 		this.add(new CampoDOM(null, "tipo", {
 			titulo: "Tipo", 
 			spanV: 3,
@@ -260,7 +268,6 @@ class Funcionarios extends FichasDOM {
 		}));
 		this.add(new CampoDOM(null, "dependentes", {
 			titulo: "Dependentes", 
-			regras: {obrigatorio: true},
 			subtipo: "number",
 		}));
 		this.add(new CampoDOM(null, "utilizaVT", {
@@ -324,7 +331,7 @@ class ColaboradoresProcessamento extends ConjuntoDOM {
 			titulo: "Colaboradores",
 			qtdColunas: 5,
 			spanV: 5,
-			regras: {campoChave: "colaborador"},
+			regras: {campoChave: "colaborador", obrigatorio: true},
 			ordem: "colaborador",
 			somentePrimeiroLabel: true
 		});
@@ -368,7 +375,8 @@ class ProcessamentoFolha extends FichasDOM {
 			titulo: "Folha de Pagamento",
 			qtdColunas: 6,
 			regras: {campoChave: "data"},
-			ordem: "nome",
+			ordem: "data",
+			ordemDesc: true,
 		});
 		this.aba = aba;
 		this.add(new CampoDOM(null, "mes", {
@@ -418,7 +426,15 @@ class ProcessamentoFolha extends FichasDOM {
 		bt.textContent = "Gerar pagamento";
 		div.appendChild(bt);
 		bt.addEventListener("click", async (e) => {
-			this.gerarLancamentos();
+			if (Object.keys(this.getAtual()).length > 0) {
+				let sistema = this.getModuloSistema();
+				let lista = sistema.validar();
+				if (lista.length == 0) {
+					this.gerarLancamentos();
+				} else {
+					new Modal().mostrar("Gerar pagamento", "Não é possível gerar pagamentos, pois há erros");
+				}
+			}
 		});
 	}
 	async gravarPdfNoCampo(docJsPdf, nomeArquivo, componenteCampoArquivo) {
@@ -760,21 +776,21 @@ document.body.hidden = false;
 console.log("folha", folha);
 const parametros = new URLSearchParams(window.location.search);
 if (parametros.get("contas")) {
-	let arq = "../planoContas/dados/" + parametros.get("contas") + "?v0.9";
+	let arq = "../planoContas/dados/" + parametros.get("contas") + "?v0.91";
 	fetch(arq)
 		.then(resposta => resposta.json())
 		.then(obj => {
 			console.log(obj);
 			folha.setContas(obj);
 			if (parametros.get("folha")) {
-				let arq = "dados/" + parametros.get("folha") + "?v0.9";
+				let arq = "dados/" + parametros.get("folha") + "?v0.91";
 				folha.carregar(arq);
 			}
 		}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 	);
 }
 async function executaAcao(linkDestino) {
-	let versao = "?v0.9";
+	let versao = "?v0.91";
 	if (linkDestino === "#abrir") {
 		folha.abrirArquivo();
 	} else if (linkDestino === "#salvar") {

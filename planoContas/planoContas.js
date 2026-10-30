@@ -1,9 +1,10 @@
-import { Modal, ControleAba } from '../util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1';
-import { NavigationMenu } from '../util/menu.js?vc1';
-import { ParametrizacaoCTB } from './parametrizacao.js?v0.9';
-import { LancamentoContabil } from './lancamentoContabil.js?v0.9';
-import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v0.9';
+import { Modal, ControleAba } from '../util/util.js?vc1.1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1.1';
+import { Endereco } from '../util/endereco.js?vc1.1';
+import { NavigationMenu } from '../util/menu.js?vc1.1';
+import { ParametrizacaoCTB } from './parametrizacao.js?v0.91';
+import { LancamentoContabil } from './lancamentoContabil.js?v0.91';
+import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v0.91';
 
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
 
@@ -57,14 +58,8 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 			titulo: "Balanço",
 			spanV: 2, 
 		}));
-		this.add(new CampoDOM(null, "endereco", {
-			titulo: "Endereço", 
-			spanV: 7, 
-			regras: {obrigatorio: true}
-		}));
-		this.add(new ComboFiltroDOM(null, "cidadeEstado", {
-			titulo: "Cidade/Estado", 
-			spanV: 3, 
+		this.add(new Endereco(null, "endereco", {
+			spanV: 10, 
 			regras: {obrigatorio: true}
 		}));
 		this.add(new ComboFiltroDOM(null, "cnaePrincipal", {
@@ -103,20 +98,6 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 	async carregarDados() {
 		super.carregarDados();
 		if (!this.carregandoDados) {
-			try {
-				this.carregandoDados = true;
-				let res = await fetch("dados/estados-cidades.json");
-				let obj = await res.json();
-				let opcoes = [];
-				for (let estado of obj.estados) {
-					for (let cidade of estado.cidades) {
-						opcoes.push({text: cidade + "/" + estado.sigla});
-					}
-				}
-				this.getComponente("cidadeEstado").setOpcoes(opcoes);
-			} catch(erro) {
-				console.error('Erro ao ler estados-cidades.json:', erro);
-			}
 			try {
 				this.carregandoDados = true;
 				let res = await fetch("dados/cnae.json");
@@ -399,10 +380,10 @@ console.log("contabilidade", contabilidade);
 
 const parametros = new URLSearchParams(window.location.search);
 if (parametros.get("contas")) {
-	let arq = "dados/" + parametros.get("contas") + "?v0.9";
+	let arq = "dados/" + parametros.get("contas") + "?v0.91";
 	await contabilidade.carregar(arq);
 	if (parametros.get("lancamentos")) {
-		let arq = "dados/" + parametros.get("lancamentos") + "?v0.9";
+		let arq = "dados/" + parametros.get("lancamentos") + "?v0.91";
 		fetch(arq)
 			.then(resposta => resposta.json())
 			.then(obj => {
@@ -413,7 +394,7 @@ if (parametros.get("contas")) {
 	}
 }
 async function executaAcao(linkDestino) {
-	let versao = "?v0.9";
+	let versao = "?v0.91";
 	if (linkDestino === "#abrir") {
 		contabilidade.abrirArquivo();
 	} else if (linkDestino === "#salvar") {
