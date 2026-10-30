@@ -1,6 +1,6 @@
-import { Modal, ControleAba } from './util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
-import { NavigationMenu } from './util/menu.js?vc1';
+import { Modal, ControleAba } from '../util/util.js?vc1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1';
+import { NavigationMenu } from '../util/menu.js?vc1';
 import { ParametrizacaoCTB } from './parametrizacao.js?v0.9';
 import { LancamentoContabil } from './lancamentoContabil.js?v0.9';
 import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v0.9';
@@ -20,10 +20,17 @@ class CnaeSecundario extends ConjuntoDOM {
 			regras: {obrigatorio: true}
 		}));
 	}
+	setOpcoesCnae(opcoes) {
+		this.opcoes = opcoes;
+		for (let item of this.componentes) {
+			if (!item.modelo) {
+				item.getComponente("codigo").setOpcoes(this.opcoes);
+			}
+		}
+	}
 	novo() {
 		let n = super.novo();
-		let cnaePrincipal = this.pai.getComponente("cnaePrincipal");
-		n.getComponente("codigo").setOpcoes(cnaePrincipal.cs.options);
+		n.getComponente("codigo").setOpcoes(this.opcoes);
 		return n;
 	}
 }
@@ -119,13 +126,11 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 					opcoes.push({value: key, text: key + " - " + obj[key]});
 				}
 				this.getComponente("cnaePrincipal").setOpcoes(opcoes);
+				this.getComponente("cnaeSecundario").setOpcoesCnae(opcoes);
 			} catch(erro) {
 				console.error('Erro ao ler cnae.json:', erro);
 			}
 		}
-	}
-	async novo() {
-		this.limpar();
 	}
 	async setValor(valor) {
 		await this.carregarDados();
@@ -218,35 +223,6 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 		super.focar();
 		this.aba.alternar("abaPrincipal");
 	}
-	validar() {
-		let lista = super.validar();
-		let ul = document.getElementById("mensagens");
-		ul.innerHTML = "";
-		let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
-		if (lista.length > 0) {
-			abaErros.hidden = false;
-			this.aba.alternar("abaErros");
-		} else {
-			abaErros.hidden = true;
-		}
-		for (let item of lista) {
-			let li = document.createElement("li");
-			let a = document.createElement("a");
-			a.href = "#";
-			a.title = "Clique para ir para o campo";
-			li.appendChild(a);
-			a.textContent = item.mensagem;
-			a.addEventListener('click', (e) => {
-				e.preventDefault()
-				for (let i = item.componentes.length - 1; i >= 0; i--) {
-					let c = item.componentes[i];
-					c.componente.focar(c.posicao);
-				}
-			});
-			ul.appendChild(li);
-		}
-		return lista;
-	}
 	localizaConta(conta) {
 		let auxContas = [];
 		auxContas.push(this.getComponente("ativos"));
@@ -320,6 +296,7 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 		}
 		lancamento.timestamp = Date.now();
 		this.lancamentos.push(lancamento);
+		this.haModificacoesLancamentos = true;
 	}
 	getListaQuantidade(conta) {
 		let lancamentos = this.getLancamentos(conta);
@@ -411,93 +388,64 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 		}
 		return saida;
 	}
+	setLancamentos(lancamentos) {
+		this.lancamentos = lancamentos;
+	}
 }
-async function salvarComJanelaNativa(texto) {
-  const opcoes = { types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }] };
-  const handle = await window.showSaveFilePicker(opcoes);
-  const writable = await handle.createWritable();
-  await writable.write(texto);
-  await writable.close();
-}
-async function abrirComJanelaNativa() {
-  try {
-	const opcoes = {
-	  types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }]
-	};
-	const [handle] = await window.showOpenFilePicker(opcoes);
-	const arquivo = await handle.getFile();
-	const texto = await arquivo.text();
-	return JSON.parse(texto); // Retorna o objeto JSON puro
-  } catch (erro) {
-	console.error(erro);
-	return null;
-  }
-}
-
 let contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
 await contabilidade.carregarDados();
 document.body.hidden = false;
 console.log("contabilidade", contabilidade);
 
-async function executaAcao(linkDestino) {
-	if (linkDestino === "#abrir") {
-		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma abrir?")) {
-			return;
-		}
-		let obj = await abrirComJanelaNativa();
-		console.log("abrir", obj);
-		contabilidade.setValor(obj);
-		contabilidade.haModificacoes = false;
-	} else if (linkDestino === "#salvar") {
-		let conteudo = contabilidade.getValor();
-		console.log("conteudo", conteudo);
-		let str = JSON.stringify(conteudo);
-		salvarComJanelaNativa(str);
-		contabilidade.haModificacoes = false;
-	} else if (linkDestino === "#novo") {
-		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
-			contabilidade.novo();
-		}
-	} else if (linkDestino === "#contas.json") {
-		if (contabilidade.haModificacoes && !confirm("Há modificações não salvas.  Confirma carregar dados?")) {
-			return;
-		}
-		fetch("dados/contas.json?v0.9")
+const parametros = new URLSearchParams(window.location.search);
+if (parametros.get("contas")) {
+	let arq = "dados/" + parametros.get("contas") + "?v0.9";
+	await contabilidade.carregar(arq);
+	if (parametros.get("lancamentos")) {
+		let arq = "dados/" + parametros.get("lancamentos") + "?v0.9";
+		fetch(arq)
 			.then(resposta => resposta.json())
 			.then(obj => {
 				console.log(obj);
-				contabilidade.setValor(obj);
-				contabilidade.haModificacoes = false;
+				contabilidade.setLancamentos(obj);
 			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 		);
-	} else if (linkDestino === "#validar") {
-		let lista = contabilidade.validar();
-		if (lista.length == 0) {
-			new Modal().mostrar("Validação", "Validação não encontrou erros");
+	}
+}
+async function executaAcao(linkDestino) {
+	let versao = "?v0.9";
+	if (linkDestino === "#abrir") {
+		contabilidade.abrirArquivo();
+	} else if (linkDestino === "#salvar") {
+		contabilidade.salvarArquivo();
+	} else if (linkDestino === "#novo") {
+		contabilidade.novo();
+	} else if (linkDestino === "#incluirLancamentos") {
+		let obj = await contabilidade.abrirComJanelaNativa();
+		for (let lancamento of obj) {
+			contabilidade.efetuarLancamento(lancamento);
 		}
-	} else if (linkDestino === "#refazerLancamentos") {
+	} else if (linkDestino === "#salvarLancamentos") {
+		let obj = contabilidade.lancamentos;
+		let str = JSON.stringify(obj);
+		await contabilidade.salvarComJanelaNativa(str);
+		contabilidade.haModificacoesLancamentos = false;
+	} else if (linkDestino === "#carregarLancamentos") {
+		let obj = await contabilidade.abrirComJanelaNativa();
+		contabilidade.setLancamentos(obj);
 		contabilidade.refazerLancamentos();
+		contabilidade.haModificacoesLancamentos = false;
+	} else if (linkDestino === "#contas.json") {
+		contabilidade.carregar("dados/contas.json" + versao);
+	} else if (linkDestino === "#validar") {
+		contabilidade.validar(contabilidade.aba);
 	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	} else if (linkDestino === "#ajuda") {
-		fetch("ajuda.html?v0.9")
-			.then(resposta => resposta.text())
-			.then(html => {
-				const parser = new DOMParser();
-				const doc = parser.parseFromString(html, 'text/html');
-				let textoAjuda = doc.body.innerHTML;
-				textoAjuda += "<br><a href='ajuda.html' target='_blank'>Abrir ajuda em outra janela</a>";
-				new Modal().mostrar("Ajuda da Contabilidade Simples em Javascript", textoAjuda); 
-			}).catch(erro => console.error('Erro ao ler o help:', erro)
-		);
+		contabilidade.mostrarAjuda("ajuda.html", "Contabilidade Simples em Javascript", versao);
 	} else if (linkDestino === "#sobre") {
-		let versao = "?v0.9";
-		new Modal().mostrar("Contabilidade Simples (versão " + versao.replace("?v", "") + ")", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça"); 
+		contabilidade.sobre("Contabilidade Simples em Javascript", "Sistema contábil para treinamento e para uso em pequenas empresas.<br>Em desenvolvimento por Myrko I. da Graça", versao);
 	}
-}
-const hash = window.location.hash;
-if (hash) {
-	executaAcao(hash);
 }
 async function acaoAoClicar(event, elementoClicado) {
 	const textoDoLink = elementoClicado.textContent;

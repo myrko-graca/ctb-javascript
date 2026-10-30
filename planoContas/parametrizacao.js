@@ -1,6 +1,5 @@
-import { Modal, ControleAba } from './util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
-import { Produtos } from './produtos.js?v0.9';
+import { Modal, ControleAba } from '../util/util.js?vc1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1';
 
 class ContasRequeremQuantidade extends ConjuntoDOM {
 	constructor() {
@@ -459,7 +458,6 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		let elemento = document.getElementById("parametros");
 		super(elemento, "parametrizacao");
 		this.aba = aba;
-		this.abaParametrizacao = new ControleAba(document.getElementById("abaParametros"));
 		this.listaContas = [];
 		this.listaContasNaoSinteticas = [];
 		let regimeTributario = new RegimeTributario();
@@ -468,8 +466,6 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 		this.add(contasDepreciacao);
 		let contasQuantidade = new ContasRequeremQuantidade();
 		this.add(contasQuantidade);
-		let produtos = new Produtos(aba);
-		this.add(produtos);
 	}
 	setValor(valor) {
 		let listaContas = this.getModuloSistema().getListaContas();
@@ -493,6 +489,5 @@ export class ParametrizacaoCTB extends ObjetoDOM {
 	focar() {
 		super.focar();
 		this.aba.alternar("abaParametros");
-		this.abaParametrizacao.alternar("abaBasica");
 	}
 }

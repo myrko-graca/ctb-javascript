@@ -3,10 +3,10 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 	estilo.id = "estilo_menu";
 	estilo.innerHTML = `
 		.dropdown-menu .divider {
-		  height: 1px;               /* Espessura do traço */
-		  background-color: #444444; /* Cor do traço (ajuste se quiser mais claro ou escuro) */
-		  margin: 0.5rem 0;          /* Espaçamento em cima e embaixo do traço */
-		  pointer-events: none;      /* Garante que não seja clicável */
+		  height: 1px;               
+		  background-color: #444444; 
+		  margin: 0.5rem 0;          
+		  pointer-events: none;      
 		}
 		.header {
 		  display: flex;
@@ -97,6 +97,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			opacity: 1;
 			visibility: visible;
 			transform: translateY(0);
+			pointer-events: auto;
 		  }
 		}
 		#nav {
@@ -116,11 +117,8 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		    font-size: 1.3rem;
 		  }
 		  #nav {
-			position: absolute;
-			width: 0;
-			height: 0;
-			visibility: hidden;
-			transform: revert!important;
+			position: static;
+			transform: none !important;
 		  }
 		  #btn-mobile {
 			display: flex;
@@ -133,7 +131,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			width: 40px;
 			height: 40px;
 			color: #ffffff;
-			margin-left: auto; /* Empurra para a direita */
+			margin-left: auto; 
 			position: relative;
 			z-index: 1001;
 		  }
@@ -181,12 +179,12 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 			overflow: hidden;
 			opacity: 0;
 			visibility: hidden;
-			transition: height 0.4s ease-in-out, opacity 0.3s, visibility 0.4s;
+			transition: height 0.3s ease-in-out, opacity 0.3s, visibility 0.3s;
 			z-index: 1000;
 			padding: 0;
 		  }
 		  #nav.active .menu {
-			height: calc(100vh - 70px);
+			height: calc(100vh - 50px);
 			overflow-y: auto;
 			opacity: 1;
 			visibility: visible;
@@ -216,6 +214,7 @@ if (!document.querySelector("style[id='estilo_menu']")) {
 		}`;
 	document.head.appendChild(estilo);
 }
+
 export class NavigationMenu {
   constructor(navId, btnMobileId, dropdownToggleClass, dropdownItemClass, onLinkClick = null) {
     this.nav = document.getElementById(navId);
@@ -240,6 +239,7 @@ export class NavigationMenu {
     const active = this.nav.classList.contains('active');
     this.btnMobile.setAttribute('aria-expanded', active);
   }
+
   toggleDropdown(event) {
     if (window.innerWidth <= 768) {
       event.preventDefault();
@@ -250,6 +250,7 @@ export class NavigationMenu {
       currentItem.classList.toggle('open');
     }
   }
+
   closeAllMenus() {
     if (this.nav && this.btnMobile) {
       this.nav.classList.remove('active');
@@ -258,12 +259,14 @@ export class NavigationMenu {
       this.btnMobile.setAttribute('aria-expanded', 'false');
     }
   }
+
   handleOutsideClick(event) {
     const clickedOutside = !this.btnMobile.contains(event.target) && !this.nav.contains(event.target);
     if (clickedOutside) {
       this.closeAllMenus();
     }
   }
+
   handleKeyPress(event) {
     if (event.key === 'Escape' || event.key === 'Esc') {
       this.closeAllMenus();
@@ -272,13 +275,40 @@ export class NavigationMenu {
       }
     }
   }
+
   handleMenuLinkClick(event) {
     if (event.target.classList.contains('dropdown-toggle')) return;
+    
+    // Mantém o bloqueio da navegação padrão que você pediu
+    event.preventDefault(); 
+    
+    // Remove o foco visual do link no computador
+    event.target.blur();
+    
+    // Fecha as classes do menu mobile instantaneamente
     this.closeAllMenus();
+
+    // Comportamento para Computador: força o sub-menu a sumir se o clique foi dentro dele
+    const dropdownMenu = event.target.closest('.dropdown-menu');
+    if (dropdownMenu) {
+      dropdownMenu.style.pointerEvents = 'none';
+      dropdownMenu.style.opacity = '0';
+      dropdownMenu.style.visibility = 'hidden';
+      
+      // Restaura o comportamento normal logo em seguida (0.4s) para quando passar o mouse de novo
+      setTimeout(() => {
+        dropdownMenu.style.pointerEvents = '';
+        dropdownMenu.style.opacity = '';
+        dropdownMenu.style.visibility = '';
+      }, 400);
+    }
+    
+    // Executa a sua função de navegação customizada
     if (typeof this.onLinkClick === 'function') {
       this.onLinkClick(event, event.target);
     }
   }
+
   init() {
     if (this.btnMobile && this.nav) {
       this.btnMobile.addEventListener('click', this.toggleMenu);

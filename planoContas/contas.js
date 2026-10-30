@@ -1,5 +1,5 @@
-import { Modal, ControleAba } from './util/util.js?vc1';
-import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from './util/form.js?vc1';
+import { Modal, ControleAba } from '../util/util.js?vc1';
+import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, CampoDOM, CampoArquivo, CNPJCPF, IntervaloDOM } from '../util/form.js?vc1';
 
 let ehCelular = window.innerWidth <= 768;
 
@@ -302,6 +302,7 @@ export class Despesas extends ContaCTB {
 export class ApuracaoResultado extends ContaCTB {
 	constructor(aba) {
 		super(document.getElementById("apuracaoResultado"), "apuracaoResultado");
+		this.aba = aba;
 		let codigo = this.getComponente("codigo");
 		codigo.setValor(5);
 		codigo.campo.setAttribute("readonly" , true);
@@ -315,9 +316,7 @@ export class ApuracaoResultado extends ContaCTB {
 			spanV: this.obj.qtdColunas - 1,
 			regras: {obrigatorio: true}
 		}));
-		this.aba = aba;
-		this.abaApuracao = new ControleAba(document.getElementById("abaApuracaoResultado"));
-		this.add(new RealizarApuracao(this.abaApuracao));
+		this.add(new RealizarApuracao());
 	}
 	preencherCombos() {
 		let listaContas = this.pai.getListaContas();
@@ -337,13 +336,11 @@ export class ApuracaoResultado extends ContaCTB {
 	}
 	focar(ind) {
 		super.focar(ind);
-		this.aba.alternar("abaApuracaoResultado");
 	}
 }
 class RealizarApuracao extends ObjetoDOM {
-	constructor(aba) {
-		super(document.getElementById("realizarApuracao"), "realizarApuracao", {qtdColunas: 5});
-		this.aba = aba;
+	constructor() {
+		super(document.getElementById("realizarApuracao"), "realizarApuracao", {qtdColunas: 5, spanV: 10, titulo: "Realizar Apuração"});
 		this.add(new IntervaloDOM(null, "periodo", {
 			titulo: "Período",
 			spanV: 2,
@@ -562,9 +559,5 @@ class RealizarApuracao extends ObjetoDOM {
 		}
 		conteudo += "\n";
 		pre.textContent = conteudo;
-	}
-	focar(ind) {
-		super.focar(ind);
-		this.aba.alternar("abaApuracao");
 	}
 }

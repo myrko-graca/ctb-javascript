@@ -1,3 +1,4 @@
+import { Modal, ControleAba } from '../util/util.js?vc1';
 import { CustomSelect } from './customselect.js?v0.8';
 console.log("Módulo de formulários desenvolvido por Myrko I. da Graça");
 
@@ -361,6 +362,123 @@ export class ModuloSistemaDOM extends ObjetoDOM {
 		super.aoModificar();
 		this.haModificacoes = true;
 	}
+	async salvarComJanelaNativa(texto, nomeArq) {
+	  const opcoes = { types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }] };
+	  if (nomeArq) {
+		opcoes.suggestedName = nomeArq;
+	  }	
+	  const handle = await window.showSaveFilePicker(opcoes);
+	  const writable = await handle.createWritable();
+	  await writable.write(texto);
+	  await writable.close();
+	}
+	async abrirComJanelaNativa() {
+	  try {
+		const opcoes = {
+		  types: [{ description: 'Arquivos JSON', accept: { 'application/json': ['.json'] } }]
+		};
+		const [handle] = await window.showOpenFilePicker(opcoes);
+		const arquivo = await handle.getFile();
+		const texto = await arquivo.text();
+		return JSON.parse(texto); // Retorna o objeto JSON puro
+	  } catch (erro) {
+		console.error(erro);
+		return null;
+	  }
+	}
+	async salvarArquivo() {
+		let conteudo = this.getValor();
+		console.log("conteudo", conteudo);
+		let str = JSON.stringify(conteudo);
+		this.salvarComJanelaNativa(str);
+		this.haModificacoes = false;
+	}
+	async abrirArquivo() {
+		if (this.haModificacoes && !confirm("Há modificações não salvas.  Confirma abrir?")) {
+			return;
+		}
+		let obj = await this.abrirComJanelaNativa();
+		console.log("abrir", obj);
+		this.setValor(obj);
+		this.haModificacoes = false;
+	}
+	async novo() {
+		if (confirm("Confirma apagar os dados e gerar um novo plano de contas?")) {
+			this.limpar();
+			this.haModificacoes = false;
+			const novaUrl = window.location.origin + window.location.pathname;
+			window.history.replaceState({}, document.title, novaUrl);
+		}
+	}
+	async carregar(arq) {
+		if (this.haModificacoes && !confirm("Há modificações não salvas.  Confirma carregar dados?")) {
+			return;
+		}
+		fetch(arq)
+			.then(resposta => resposta.json())
+			.then(obj => {
+				console.log(obj);
+				this.setValor(obj);
+				this.haModificacoes = false;
+			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
+		);
+	}
+	validar(aba) {
+		let lista = super.validar();
+		if (aba) {
+			let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
+			if (abaErros) {
+				document.getElementById("abaErros").innerHTML = "";
+				let ul = document.createElement("ul");
+				document.getElementById("abaErros").appendChild(ul);
+				if (lista.length > 0) {
+					abaErros.hidden = false;
+					this.aba.alternar("abaErros");
+				} else {
+					abaErros.hidden = true;
+				}
+				for (let item of lista) {
+					let li = document.createElement("li");
+					let a = document.createElement("a");
+					a.href = "#";
+					a.title = "Clique para ir para o campo";
+					li.appendChild(a);
+					a.textContent = item.mensagem;
+					a.addEventListener('click', (e) => {
+						e.preventDefault()
+						for (let i = item.componentes.length - 1; i >= 0; i--) {
+							let c = item.componentes[i];
+							c.componente.focar(c.posicao);
+						}
+					});
+					ul.appendChild(li);
+				}
+			} else {
+				throw new Error("É necessário definir 'abaErros'");
+			}
+		} else {
+			throw new Error("É necessário definir componente de aba");
+		}
+		if (lista.length == 0) {
+			new Modal().mostrar("Validação", "Validação não encontrou erros");
+		}
+		return lista;
+	}
+	mostrarAjuda(arquivo, titulo, versao) {
+		fetch("ajuda.html?v0.9")
+			.then(resposta => resposta.text())
+			.then(html => {
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(html, 'text/html');
+				let textoAjuda = doc.body.innerHTML;
+				textoAjuda += "<br><a href='" + arquivo + "' target='_blank'>Abrir ajuda em outra janela</a>";
+				new Modal().mostrar(titulo, textoAjuda); 
+			}).catch(erro => console.error('Erro ao ler o help:', erro)
+		);
+	}
+	sobre(titulo, texto, versao) {
+		new Modal().mostrar(titulo + " (versão " + versao.replace("?v", "") + ")", texto); 
+	}
 }
 export class ConjuntoDOM extends ObjetoDOM {
 	constructor(elemento, nome, obj) {
@@ -436,6 +554,10 @@ export class ConjuntoDOM extends ObjetoDOM {
 		for (let item of this.componentes) {
 			if (item.modelo) {
 				let c = item.clonar();
+				console.log("novo", this.nome, item.nome, item.getSomenteLeitura());
+				if (item.getSomenteLeitura()) {
+					c.setSomenteLeitura(true);
+				}
 				n.add(c);
 				if (this.obj.somentePrimeiroLabel) {
 					if (this.getTamanho() > 0) {
@@ -578,6 +700,20 @@ export class ConjuntoDOM extends ObjetoDOM {
 			}
 		}
 		return lista;
+	}
+	localizarRegistro(valor) {
+		if (this.obj?.regras?.campoChave) {
+			for (let item of this.componentes) {
+				if (!item.modelo && !item.vazio()) {
+					let campo = item.getComponente(this.obj.regras.campoChave);
+					if (campo && campo.getValor() == valor) {
+						return item;
+					}
+				}
+			}
+		} else {
+			throw new Error("Sem campo chave definido");
+		}
 	}
 	validar() {
 		let lista = this.regrasBasicas(this.vazio());
@@ -1161,15 +1297,13 @@ export class CampoArquivo extends CampoDOM {
 		obj.tipo = "input";
 		obj.subtipo = "file";
 		super(elemento, nome, obj);
-	}
-	init() {
-		super.init();
+
 		this.campo.hidden = true;
 		let div = document.createElement("div");
 		div.tabIndex = "-1";
 		div.className = "file-group";
 		this.campo.parentNode.appendChild(div);
-		this.campo.parentNode.style.display = "inline-grid";
+		this.campo.parentNode.style.display = "table-caption";
 		div.appendChild(this.campo);
 		this.btnSelect = document.createElement("button");
 		this.btnSelect.title = "Clique para anexar um arquivo";
@@ -1219,14 +1353,32 @@ export class CampoArquivo extends CampoDOM {
 			let sistema = this.getModuloSistema();
 			let arquivo = sistema.getArquivo(this.hash);
 			if (arquivo) {
-				const linkTemporario = document.createElement('a');
-				// Passa a string Base64 do JSON para a rota de download
-				linkTemporario.href = arquivo.conteudo;
-				linkTemporario.download = arquivo.nome;
-				// Simula a ação automática de clique
-				document.body.appendChild(linkTemporario);
-				linkTemporario.click();
-				document.body.removeChild(linkTemporario);
+				// Verifica se o arquivo é PDF ou um tipo de imagem
+				const ehVisualizavel = arquivo.tipo === 'application/pdf' || arquivo.tipo.startsWith('image/');
+				if (ehVisualizavel) {
+					// Isolamos os dados da string Base64 (removendo o prefixo "data:...;base64,")
+					let partes = arquivo.conteudo.split(',');
+					let base64Dados = partes.length > 1 ? partes[1] : partes[0];
+					// Converte a string Base64 em um Array de bytes (Uint8Array)
+					const caracteresBinarios = atob(base64Dados);
+					const bytesBinarios = new Uint8Array(caracteresBinarios.length);
+					for (let i = 0; i < caracteresBinarios.length; i++) {
+						bytesBinarios[i] = caracteresBinarios.charCodeAt(i);
+					}
+					// Cria o Blob e gera uma URL temporária na memória do navegador
+					const blob = new Blob([bytesBinarios], { type: arquivo.tipo });
+					const urlBlob = URL.createObjectURL(blob);
+					// Abre o arquivo no leitor nativo do navegador em uma nova aba
+					window.open(urlBlob, '_blank');
+				} else {
+					// Comportamento original para downloads de outros formatos (ZIP, Excel, etc)
+					const linkTemporario = document.createElement('a');
+					linkTemporario.href = arquivo.conteudo;
+					linkTemporario.download = arquivo.nome;
+					document.body.appendChild(linkTemporario);
+					linkTemporario.click();
+					document.body.removeChild(linkTemporario);
+				}
 			} else {
 				throw new Error("Arquivo não encontrado: " + this.hash);
 			}
@@ -1266,8 +1418,12 @@ export class CampoArquivo extends CampoDOM {
 		return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 	}
 	setSomenteLeitura(valor) {
-		this.btnSelect.disabled = valor;
-		this.btnClear.disabled = valor;
+		this.somenteLeitura = valor;
+		this.btnSelect.disabled = this.somenteLeitura;
+		this.btnClear.disabled = this.somenteLeitura;
+	}
+	getSomenteLeitura() {
+		return this.somenteLeitura;
 	}
 	focar() {
 		this.btnSelect.parentNode.focus();
