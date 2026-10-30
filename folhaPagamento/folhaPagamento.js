@@ -572,8 +572,8 @@ class ProcessamentoFolha extends FichasDOM {
 	async gerarPDF(func, processamento, proc, contas, campoArquivo) {
 		let nomeEmpresa = contas.nome;
 		let identificacao = contas.identificacao.documento;
-		let endereco = contas.endereco;
-		let cidade = contas.cidadeEstado;
+		let endereco = contas.endereco.endereco;
+		let cidade = contas.endereco.cidadeEstado;
 		
 		let ano = proc.ano;
 		let mes = proc.mes;
