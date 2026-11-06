@@ -398,7 +398,7 @@ async function executaAcao(linkDestino) {
 	if (linkDestino === "#abrir") {
 		contabilidade.abrirArquivo();
 	} else if (linkDestino === "#salvar") {
-		contabilidade.salvarArquivo();
+		contabilidade.salvarArquivo("contas.json");
 	} else if (linkDestino === "#novo") {
 		contabilidade.novo();
 	} else if (linkDestino === "#incluirLancamentos") {

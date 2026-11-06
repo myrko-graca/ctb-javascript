@@ -309,7 +309,7 @@ export class ObjetoDOM {
 	}
 	async carregarDados() {
 		for (let item of this.componentes) {
-			item.carregarDados();
+			await item.carregarDados();
 		}
 	}
 }
@@ -386,11 +386,11 @@ export class ModuloSistemaDOM extends ObjetoDOM {
 		return null;
 	  }
 	}
-	async salvarArquivo() {
+	async salvarArquivo(nomeArq) {
 		let conteudo = this.getValor();
 		console.log("conteudo", conteudo);
 		let str = JSON.stringify(conteudo);
-		this.salvarComJanelaNativa(str);
+		this.salvarComJanelaNativa(str, nomeArq);
 		this.haModificacoes = false;
 	}
 	async abrirArquivo() {
@@ -678,8 +678,8 @@ export class ConjuntoDOM extends ObjetoDOM {
 			}
 		}
 	}
-	regrasBasicas() {
-		let lista = super.regrasBasicas(this.vazio());
+	regrasBasicas(vazio) {
+		let lista = super.regrasBasicas(vazio);
 		if (this.obj?.regras?.campoChave) {
 			let nome = this.obj.titulo;
 			if (!nome) {
@@ -688,7 +688,14 @@ export class ConjuntoDOM extends ObjetoDOM {
 			let strObj = this.getTipo();
 			strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
 			let valor = this.getValor();
-			let chaves = valor.map(v => v[this.obj.regras.campoChave]);
+			let chaves = valor.map(v => {
+				let chave = v[this.obj.regras.campoChave];
+				if (typeof chave === "object") {
+					return JSON.stringify(chave);
+				} else {
+					return chave;
+				}
+			});
 			if (new Set(chaves).size !== valor.length) {
 				let item = {};
 				item.mensagem = strObj + " '" + nome + "' está está com campo chave repetido";
@@ -786,7 +793,7 @@ export class FichasDOM extends ObjetoDOM {
 					return;
 				}
 				const itensLista = [];
-				let lista = this.getValor();
+				let lista = this.getValor(true);
 				let campo = this.obj.campoLista;
 				if (!campo) {
 					campo = this.obj.ordem;
@@ -914,17 +921,6 @@ export class FichasDOM extends ObjetoDOM {
 		this.mandaValor();
 		this.atualizarContador();
 	}
-	getValor() {
-		let saida = [];
-		this.buscaValor();
-		for (let item of this.lista) {
-			let reg = item;
-			if (Object.keys(reg).length > 0) {
-				saida.push(reg);
-			}
-		}
-		return saida;
-	}
 	setValor(valor) {
 		if (valor && !Array.isArray(valor)) {
 			throw new Error("Valor atribuído a '" + this.nome + "' deve ser do tipo 'array'");
@@ -1011,8 +1007,35 @@ export class FichasDOM extends ObjetoDOM {
 		super.add(item);
 		this.elemento.appendChild(this.div);
 	}
+	regrasBasicas(vazio, indFichas) {
+		let lista = super.regrasBasicas(vazio);
+		if (indFichas && this.obj?.regras?.campoChave) {
+			let nome = this.obj.titulo;
+			if (!nome) {
+				nome = this.nome;
+			}
+			let strObj = this.getTipo();
+			strObj = strObj.charAt(0).toUpperCase() + strObj.slice(1);
+			let valor = this.getValor();
+			let chaves = valor.map(v => {
+				let chave = v[this.obj.regras.campoChave];
+				if (typeof chave === "object") {
+					return JSON.stringify(chave);
+				} else {
+					return chave;
+				}
+			});
+			if (new Set(chaves).size !== valor.length) {
+				let item = {};
+				item.mensagem = strObj + " '" + nome + "' está está com campo chave repetido";
+				item.componentes = [{componente: this}];
+				lista.push(item);
+			}
+		}
+		return lista;
+	}
 	validar() {
-		let lista = this.regrasBasicas(this.vazio());
+		let lista = this.regrasBasicas(this.vazio(), true);
 		let posAtual = this.posicao;
 		this.buscaValor();
 		for (let item of this.lista) {
@@ -1039,6 +1062,54 @@ export class FichasDOM extends ObjetoDOM {
 			this.mandaValor();
 			this.atualizarContador();
 		}
+	}
+	#incluiIgnorandoAcentosECase(textoBase, termoBusca) {
+		const textoNormalizado = textoBase
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "");
+
+		const termoNormalizado = termoBusca
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "");
+		return textoNormalizado.includes(termoNormalizado);
+	}
+	filtrar(filtro) {
+		if (filtro && Object.keys(filtro).length > 0) {
+			if (!this.dadosOriginais) {
+				this.dadosOriginais = this.getValor();
+			}
+			let aux = this.dadosOriginais;
+			for (let key in filtro) {
+				let subFiltro = filtro[key];
+				if (typeof subFiltro === "string") {
+					aux = aux.filter(c => this.#incluiIgnorandoAcentosECase(c[key], subFiltro));
+				} else if (typeof subFiltro === "object") {
+					for (let subkey in subFiltro) {
+						aux = aux.filter(c => this.#incluiIgnorandoAcentosECase(c[key][subkey], subFiltro[subkey]));
+					}
+				}
+			}
+			this.setValor(aux);
+		} else {
+			this.setValor(this.dadosOriginais);
+			this.dadosOriginais = null;
+		}
+	}
+	getValor(filtrado) {
+		if (this.dadosOriginais && !filtrado) {
+			return this.dadosOriginais;
+		}
+		let valor = [];
+		this.buscaValor();
+		for (let item of this.lista) {
+			let reg = item;
+			if (Object.keys(reg).length > 0) {
+				valor.push(reg);
+			}
+		}
+		return valor;
 	}
 }
 export class ComboFiltroDOM extends ObjetoDOM {
@@ -1681,7 +1752,7 @@ export class CNPJCPF extends ObjetoDOM {
 	}
 	toString() {
 		let tipo = this.tipo.getValor();
-		return tipo.toUpperCase() + ": " + this[tipo].campo.value;
+		return tipo.toUpperCase() + ":" + this[tipo].campo.value;
 	}
 	validar() {
 		let lista = super.validar();
@@ -1797,16 +1868,18 @@ export class CampoTelefone extends CampoDOM {
 	}
 	#limparValor() {
 		let valor = this.campo.value;
-		let numeros = valor.replace(/[^\d]+/g, '');
-		if (numeros.length <= 11) {
-			numeros = "55" + numeros;
-		}
-		if (numeros.length === 11) { // 55 + 9 dígitos locais
-			numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
-		} else if (numeros.length === 10) { // 55 + 8 dígitos locais
-			numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
-		}
-		return numeros; // Retorna sempre algo como "5511999999999"			
+		if (valor) {
+			let numeros = valor.replace(/[^\d]+/g, '');
+			if (numeros.length <= 11 && !numeros.startsWith("55")) {
+				numeros = "55" + numeros;
+			}
+			if (numeros.length === 11) { // 55 + 9 dígitos locais
+				numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
+			} else if (numeros.length === 10) { // 55 + 8 dígitos locais
+				numeros = numeros.substring(0, 2) + "21" + numeros.substring(2);
+			}
+			return numeros; // Retorna sempre algo como "5511999999999"
+		}			
 	}
 	#validar(telefone) {
 		const apenasNumeros = telefone.replace(/[^\d]+/g, '');

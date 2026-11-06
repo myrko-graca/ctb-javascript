@@ -27,12 +27,11 @@ export class Produtos extends FichasDOM {
 		if (!this.carregandoDados) {
 			try {
 				this.carregandoDados = true;
-				let res = await fetch("dados/ncms.json?vd1");
-				let obj = await res.json();
-				let opcoes = [];
-				let ncms = obj.Nomenclaturas;
-				for (let ncm of ncms) {
-					/* código para salvar ajustado
+				let obj = await (await fetch("dados/ncms.json?vd1")).json();
+				let opcoes = obj.Nomenclaturas.filter(n => n.Codigo?.length === 10).map(n => ({ value: n.Codigo, text: `${n.Codigo} - ${n.Descricao}` }));
+
+				/* código para salvar ajustado
+				for (let ncm of obj.Nomenclaturas) {
 					let desc = ncm.Descricao.replaceAll("<i>", "").replaceAll("</i>", "").replaceAll("<sup>", "").replaceAll("</sup>", "");
 					let cod = ncm.Codigo.replaceAll(".", "");
 					if (desc[0] == '-' || desc == "Outros" || desc == "Outras") {
@@ -49,12 +48,9 @@ export class Produtos extends FichasDOM {
 						}
 					}
 					ncm.Descricao = desc;
-					*/
-					if (ncm.Codigo.length == 10) {
-						opcoes.push({value: ncm.Codigo, text: ncm.Codigo + " - " + ncm.Descricao});
-					}
-				}				
+				}
 				console.log("ncms", obj);
+				*/
 				this.getComponente("ncm").setOpcoes(opcoes);
 			} catch(erro) {
 				console.error('Erro ao ler ncms.json:', erro);

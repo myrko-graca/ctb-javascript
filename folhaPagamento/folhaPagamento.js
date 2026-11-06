@@ -3,6 +3,7 @@ import { ObjetoDOM, ModuloSistemaDOM, ConjuntoDOM, FichasDOM, ComboFiltroDOM, Ca
 import { Endereco } from '../util/endereco.js?vc1.1';
 import { NavigationMenu } from '../util/menu.js?vc1.1';
 import { GerenciadorPagamentosContabil } from './gerenciadorPagamentos.js?v0.91';
+import { TransformaContas } from '../planoContas/util.js?v0.91';
 const { jsPDF } = window.jspdf;
 
 let ehCelular = window.innerWidth <= 768;
@@ -115,23 +116,8 @@ class FolhaPagamento extends ModuloSistemaDOM {
 		super.setValor(valor);
 		console.log("ProcessamentoFolha", valor);
 	}
-	#getListaContas(reg, prefixoCodigo) {
-		let lista = [];
-		let codigo = prefixoCodigo + reg.codigo;
-		lista.push({codigo: codigo, descricao: reg.descricao, saldo: reg.saldo, sintetica: reg.sintetica});
-		if (reg.sub) {
-			for (let sub of reg.sub) {
-				lista.push(...this.#getListaContas(sub, codigo + "."));
-			}
-		}
-		return lista;
-	}
 	setContas(contas) {
-		let lista = [];
-		lista.push(...this.#getListaContas(contas.sistemaContabil.ativos, ""));
-		lista.push(...this.#getListaContas(contas.sistemaContabil.passivos, ""));
-		lista.push(...this.#getListaContas(contas.sistemaContabil.receitas, ""));
-		lista.push(...this.#getListaContas(contas.sistemaContabil.despesas, ""));
+		let lista = new TransformaContas().getLista(contas);
 		this.contas = contas.sistemaContabil;
 		this.listaContas = lista.map(({ codigo, descricao }) => ({
 			text: codigo + " - " + descricao,
@@ -794,7 +780,7 @@ async function executaAcao(linkDestino) {
 	if (linkDestino === "#abrir") {
 		folha.abrirArquivo();
 	} else if (linkDestino === "#salvar") {
-		folha.salvarArquivo();
+		folha.salvarArquivo("folha.json");
 	} else if (linkDestino === "#novo") {
 		folha.novo();
 	} else if (linkDestino === "#planoContas") {
