@@ -5,6 +5,7 @@ import { NavigationMenu } from '../util/menu.js?vc1.1';
 import { ParametrizacaoCTB } from './parametrizacao.js?v0.91';
 import { LancamentoContabil } from './lancamentoContabil.js?v0.91';
 import { Ativos, Passivos, Receitas, Despesas, ApuracaoResultado } from './contas.js?v0.91';
+import { TransformaContas } from './util.js?v0.91';
 
 console.log("Sistema de contabilidade desenvolvido por Myrko I. da Graça");
 
@@ -180,25 +181,9 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 			elemento.appendChild(bt);
 		}
 	}
-	#getListaContas(reg, prefixoCodigo) {
-		let lista = [];
-		let codigo = prefixoCodigo + reg.codigo;
-		lista.push({codigo: codigo, descricao: reg.descricao, saldo: reg.saldo, sintetica: reg.sintetica});
-		if (reg.sub) {
-			for (let sub of reg.sub) {
-				lista.push(...this.#getListaContas(sub, codigo + "."));
-			}
-		}
-		return lista;
-	}
 	getListaContas() {
-		let lista = [];
-		let conteudo = this.getValor();
-		lista.push(...this.#getListaContas(conteudo.sistemaContabil.ativos, ""));
-		lista.push(...this.#getListaContas(conteudo.sistemaContabil.passivos, ""));
-		lista.push(...this.#getListaContas(conteudo.sistemaContabil.receitas, ""));
-		lista.push(...this.#getListaContas(conteudo.sistemaContabil.despesas, ""));
-		return lista;
+		let contas = this.getValor();
+		return new TransformaContas().getLista(contas);
 	}
 	focar() {
 		super.focar();
@@ -375,23 +360,22 @@ class ModuloSistemaContabil extends ModuloSistemaDOM {
 }
 let contabilidade = new ModuloSistemaContabil(document.getElementById("principal"));
 await contabilidade.carregarDados();
-document.body.hidden = false;
 console.log("contabilidade", contabilidade);
 
 const parametros = new URLSearchParams(window.location.search);
 if (parametros.get("contas")) {
-	let arq = "dados/" + parametros.get("contas") + "?v0.91";
+	let arq = "dados/" + parametros.get("contas") + "?vd1";
 	await contabilidade.carregar(arq);
-	if (parametros.get("lancamentos")) {
-		let arq = "dados/" + parametros.get("lancamentos") + "?v0.91";
-		fetch(arq)
-			.then(resposta => resposta.json())
-			.then(obj => {
-				console.log(obj);
-				contabilidade.setLancamentos(obj);
-			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
-		);
-	}
+}
+if (parametros.get("lancamentos")) {
+	let arq = "dados/" + parametros.get("lancamentos") + "?vd1";
+	fetch(arq)
+		.then(resposta => resposta.json())
+		.then(obj => {
+			console.log(obj);
+			contabilidade.setLancamentos(obj);
+		}).catch(erro => console.error('Erro ao ler o JSON:', erro)
+	);
 }
 async function executaAcao(linkDestino) {
 	let versao = "?v0.91";
@@ -419,7 +403,8 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#contas.json") {
 		contabilidade.carregar("dados/contas.json" + versao);
 	} else if (linkDestino === "#validar") {
-		contabilidade.validar(contabilidade.aba);
+		let lista = contabilidade.validar();
+		contabilidade.mostrarValidacao(lista, contabilidade.aba);
 	} else if (linkDestino === "#consolidarAno") {
 		consolidarAno();
 	} else if (linkDestino === "#ajuda") {
@@ -448,3 +433,4 @@ const meuMenu = new NavigationMenu(
   '.dropdown-item', 
   acaoAoClicar
 );
+document.body.hidden = false;

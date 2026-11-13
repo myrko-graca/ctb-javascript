@@ -212,9 +212,9 @@ class Funcionarios extends FichasDOM {
 	constructor(aba) {
 		let elemento = document.getElementById("funcionarios");
 		super(elemento, "funcionarios", {
-			titulo: "Funcionários",
+			titulo: "Colaboradores",
 			qtdColunas: 8,
-			regras: {campoChave: "codigo"},
+			regras: {campoChave: "contaPassivo"},
 			ordem: "nome"
 		});
 		this.aba = aba;
@@ -787,7 +787,8 @@ async function executaAcao(linkDestino) {
 		let obj = await folha.abrirComJanelaNativa();
 		folha.setContas(obj);
 	} else if (linkDestino === "#validar") {
-		folha.validar(folha.aba);
+		let lista = folha.validar();
+		folha.mostrarValidacao(lista, folha.aba);
 	} else if (linkDestino === "#ajuda") {
 		//folha.mostrarAjuda("ajuda.html", "Contabilidade Simples em Javascript", versao);
 	} else if (linkDestino === "#sobre") {

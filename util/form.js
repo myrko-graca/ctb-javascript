@@ -59,6 +59,17 @@ if (!document.querySelector("style[id='estilo_form']")) {
 			display: none!important;
 			opacity: 0;
 		}
+		.btn-file-select::after {
+		  content: "anexar";
+		}
+		.btn-file-select[data-ativo="true"]::after {
+		  content: "alterar";
+		}
+		@media (max-width: 768px) {
+			.btn-file-select[data-ativo="true"]::after {
+			  content: " 🖉 ";
+			}
+		}
 	`;
 	document.head.appendChild(estilo);
 }
@@ -106,13 +117,17 @@ export class ObjetoDOM {
 		this.nome = nome;
 		this.componentes = [];
 	}
-	add(item) {
+	add(item, incluirNoInicio) {
 		this.componentes.push(item);
 		if (item.getTipo() == "modulo") {
 			throw new Error("Não é possível adicionar módulo");
 		}
 		if (!item.elemento.parentNode) {
-			this.elemento.appendChild(item.elemento);
+			if (incluirNoInicio) {
+				this.elemento.prepend(item.elemento);
+			} else {
+				this.elemento.appendChild(item.elemento);
+			}
 		}
 		item.pai = this;
 		item.init();
@@ -142,7 +157,7 @@ export class ObjetoDOM {
 	getValor() {
 		let lista = {};
 		for (let item of this.componentes) {
-			if (!item.vazio()) {
+			if (!item.obj?.calculado && !item.vazio()) {
 				let valor = item.getValor();
 				if (typeof valor === "object" && !Array.isArray(valor)) {
 					lista[item.nome] = valor[item.nome];
@@ -160,7 +175,7 @@ export class ObjetoDOM {
 			throw new Error("Não é possível atribuir valor, pois está no modo de somente leitura");
 		}
 		for (let item of this.componentes) {
-			if (!item.obj.calculado) {
+			if (!item.obj?.calculado) {
 				let v = valor[item.nome];
 				if (v == null || v == undefined) {
 					item.setValor("");
@@ -248,6 +263,42 @@ export class ObjetoDOM {
 					lista.push(v);
 				}
 			}
+		}
+		return lista;
+	}
+	mostrarValidacao(lista, aba) {
+		let abaErros = aba.elemento.querySelector('[data-aba="abaErros"]');
+		if (abaErros) {
+			document.getElementById("abaErros").innerHTML = "";
+			let ul = document.createElement("ul");
+			document.getElementById("abaErros").appendChild(ul);
+			if (lista.length > 0) {
+				abaErros.hidden = false;
+				aba.alternar("abaErros");
+			} else {
+				abaErros.hidden = true;
+			}
+			for (let item of lista) {
+				let li = document.createElement("li");
+				let a = document.createElement("a");
+				a.href = "#";
+				a.title = "Clique para ir para o campo";
+				li.appendChild(a);
+				a.textContent = item.mensagem;
+				a.addEventListener('click', (e) => {
+					e.preventDefault()
+					for (let i = item.componentes.length - 1; i >= 0; i--) {
+						let c = item.componentes[i];
+						c.componente.focar(c.posicao);
+					}
+				});
+				ul.appendChild(li);
+			}
+			if (lista.length == 0) {
+				new Modal().mostrar("Validação", "Validação não encontrou erros");
+			}
+		} else {
+			throw new Error("É necessário definir 'abaErros'");
 		}
 		return lista;
 	}
@@ -422,45 +473,6 @@ export class ModuloSistemaDOM extends ObjetoDOM {
 				this.haModificacoes = false;
 			}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 		);
-	}
-	validar(aba) {
-		let lista = super.validar();
-		if (aba) {
-			let abaErros = this.aba.elemento.querySelector('[data-aba="abaErros"]');
-			if (abaErros) {
-				document.getElementById("abaErros").innerHTML = "";
-				let ul = document.createElement("ul");
-				document.getElementById("abaErros").appendChild(ul);
-				if (lista.length > 0) {
-					abaErros.hidden = false;
-					this.aba.alternar("abaErros");
-				} else {
-					abaErros.hidden = true;
-				}
-				for (let item of lista) {
-					let li = document.createElement("li");
-					let a = document.createElement("a");
-					a.href = "#";
-					a.title = "Clique para ir para o campo";
-					li.appendChild(a);
-					a.textContent = item.mensagem;
-					a.addEventListener('click', (e) => {
-						e.preventDefault()
-						for (let i = item.componentes.length - 1; i >= 0; i--) {
-							let c = item.componentes[i];
-							c.componente.focar(c.posicao);
-						}
-					});
-					ul.appendChild(li);
-				}
-				if (lista.length == 0) {
-					new Modal().mostrar("Validação", "Validação não encontrou erros");
-				}
-			} else {
-				throw new Error("É necessário definir 'abaErros'");
-			}
-		}
-		return lista;
 	}
 	mostrarAjuda(arquivo, titulo, versao) {
 		fetch("ajuda.html?v0.91")
@@ -986,11 +998,16 @@ export class FichasDOM extends ObjetoDOM {
 	atualizarContador() {
 		this.contador.textContent = (this.posicao + 1) + "/" + this.lista.length;
 	}
-	vazio() {
-		if (this.getValor().length > 0) {
-			return false;
+	vazio(registroAtual) {
+		if (registroAtual) {
+			let atual = this.getAtual();
+			return Object.keys(atual).length == 0;
 		} else {
-			return true;
+			if (this.getValor().length > 0) {
+				return false;
+			} else {
+				return true;
+			}
 		}
 	}
 	setSomenteLeitura(valor) {
@@ -1003,8 +1020,8 @@ export class FichasDOM extends ObjetoDOM {
 			this.btRemover.style.display = "";
 		}
 	}
-	add(item) {
-		super.add(item);
+	add(item, incluirNoInicio) {
+		super.add(item, incluirNoInicio);
 		this.elemento.appendChild(this.div);
 	}
 	regrasBasicas(vazio, indFichas) {
@@ -1034,24 +1051,34 @@ export class FichasDOM extends ObjetoDOM {
 		}
 		return lista;
 	}
-	validar() {
-		let lista = this.regrasBasicas(this.vazio(), true);
-		let posAtual = this.posicao;
-		this.buscaValor();
-		for (let item of this.lista) {
-			if (Object.keys(item).length > 0)  { //Não está vazio
-				this.posicao = this.lista.indexOf(item);
-				this.mandaValor();
-				let validacoes = super.validar();
-				for (let v of validacoes) {
-					let obj = {componente: this, posicao: this.posicao};
-					v.componentes.push(obj);
-					lista.push(v);
+	validar(registroAtual) {
+		let lista = this.regrasBasicas(this.vazio(), !registroAtual);
+		if (registroAtual) {
+			this.buscaValor();
+			let validacoes = super.validar();
+			for (let v of validacoes) {
+				let obj = {componente: this, posicao: this.posicao};
+				v.componentes.push(obj);
+				lista.push(v);
+			}
+		} else {
+			let posAtual = this.posicao;
+			this.buscaValor();
+			for (let item of this.lista) {
+				if (Object.keys(item).length > 0)  { //Não está vazio
+					this.posicao = this.lista.indexOf(item);
+					this.mandaValor();
+					let validacoes = super.validar();
+					for (let v of validacoes) {
+						let obj = {componente: this, posicao: this.posicao};
+						v.componentes.push(obj);
+						lista.push(v);
+					}
 				}
 			}
+			this.posicao = posAtual;
+			this.mandaValor();
 		}
-		this.posicao = posAtual;
-		this.mandaValor();
 		return lista;
 	}
 	focar(ind) {
@@ -1375,13 +1402,13 @@ export class CampoArquivo extends CampoDOM {
 		div.tabIndex = "-1";
 		div.className = "file-group";
 		this.campo.parentNode.appendChild(div);
-		this.campo.parentNode.style.display = "table-caption";
+		//this.campo.parentNode.style.display = "table-caption";
+		this.campo.parentNode.style.display = "grid";
 		div.appendChild(this.campo);
 		this.btnSelect = document.createElement("button");
 		this.btnSelect.title = "Clique para anexar um arquivo";
-		this.btnSelect.className = "btn btn-plus";
+		this.btnSelect.className = "btn btn-plus btn-file-select";
 		this.btnSelect.style.width = "100%";
-		this.btnSelect.textContent = "anexar";
 		this.btnSelect.addEventListener("click", (e) => {
 			this.campo.click();
 		});
@@ -1465,7 +1492,7 @@ export class CampoArquivo extends CampoDOM {
 			this.campo.value = "";
 			this.btnView.hidden = true;
 			this.btnClear.hidden = true;
-			this.btnSelect.textContent = "anexar";
+			delete this.btnSelect.dataset.ativo;
 			this.btnSelect.title = "Clique para anexar um arquivo";
 			this.hash = null;
 		});	
@@ -1477,10 +1504,10 @@ export class CampoArquivo extends CampoDOM {
 		this.btnView.title = "Exibe o arquivo '" + nome + "'";
 		this.btnClear.hidden = !hasFile;
 		if (hasFile) {
-			this.btnSelect.textContent = "alterar";
+			this.btnSelect.dataset.ativo = "true"
 			this.btnSelect.title = "Clique para alterar o arquivo selecionado";
 		} else {
-			this.btnSelect.textContent = "anexar";
+			delete this.btnSelect.dataset.ativo;
 			this.btnSelect.title = "Clique para anexar um arquivo";
 		}
 	}

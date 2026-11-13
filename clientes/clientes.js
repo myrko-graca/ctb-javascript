@@ -28,15 +28,9 @@ class Contatos extends ConjuntoDOM {
 		}));
 	}
 }
-class Clientes extends FichasDOM {
-	constructor(aba) {
-		super(null, "clientes", {
-			titulo: "Clientes",
-			qtdColunas: 10,
-			spanV: 4,
-			regras: {campoChave: "identificacao"},
-			ordem: "nome"
-		});
+class Entidades extends FichasDOM {
+	constructor(elemento, nome, obj, aba) {
+		super(elemento, nome, obj);
 		this.aba = aba;
 		this.add(new CNPJCPF(null, "identificacao", {
 			titulo: "Identificação",
@@ -59,6 +53,17 @@ class Clientes extends FichasDOM {
 			atributos: {rows: 5},
 			tipo: "textarea"
 		}));
+	}
+}
+class Clientes extends Entidades {
+	constructor(aba) {
+		super(null, "clientes", {
+			titulo: "Clientes",
+			qtdColunas: 10,
+			spanV: 4,
+			regras: {campoChave: "identificacao"},
+			ordem: "nome"
+		}, aba);
 	}
 	focar() {
 		super.focar();
@@ -105,7 +110,7 @@ class FiltroClientes extends ObjetoDOM {
 		this.clientes.filtrar(filtro);
 	}
 }
-class Fornecedores extends FichasDOM {
+class Fornecedores extends Entidades {
 	constructor(aba) {
 		super(document.getElementById("fornecedores"), "fornecedores", {
 			titulo: "Fornecedores",
@@ -113,29 +118,7 @@ class Fornecedores extends FichasDOM {
 			spanV: 4,
 			regras: {campoChave: "identificacao"},
 			ordem: "nome"
-		});
-		this.aba = aba;
-		this.add(new CNPJCPF(null, "identificacao", {
-			titulo: "Identificação",
-			spanV: 3,
-			regras: {obrigatorio: true}
-		}));
-		this.add(new CampoDOM(null, "nome", {
-			titulo: "Nome", 
-			spanV: 7,
-			regras: {obrigatorio: true},
-		}));
-		this.add(new Endereco(null, "endereco", {
-			spanV: 10, 
-			regras: {obrigatorio: true}
-		}));
-		this.add(new Contatos());
-		this.add(new CampoDOM(null, "observacoes", {
-			titulo: "Observações", 
-			spanV: 10,
-			atributos: {rows: 5},
-			tipo: "textarea"
-		}));
+		}, aba);
 	}
 	focar() {
 		super.focar();
@@ -243,7 +226,8 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#novo") {
 		clientes.novo();
 	} else if (linkDestino === "#validar") {
-		clientes.validar(clientes.aba);
+		let lista = clientes.validar();
+		clientes.mostrarValidacao(lista, clientes.aba);
 	} else if (linkDestino === "#ajuda") {
 		//clientes.mostrarAjuda("ajuda.html", "Contabilidade Simples em Javascript", versao);
 	} else if (linkDestino === "#sobre") {

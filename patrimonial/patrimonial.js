@@ -228,11 +228,51 @@ class Bens extends FichasDOM {
 		super.carregarDados();
 	}
 }
+class Itens extends ConjuntoDOM {
+	constructor() {
+		super(null, "itens", {
+			somentePrimeiroLabel: true,
+			tipo: "div",
+			qtdColunas: 4,
+			spanV: 6,
+			regras: {campoChave: "bem"}
+		});
+		this.add(new ComboFiltroDOM(null, "bem", {
+			titulo: "Bem relativo",
+			spanV: 3,
+			regras: {obrigatorio: true},
+		}));
+		this.add(new CampoDOM(null, "valor", {
+			titulo: "Valor (R$)", 
+			subtipo: "number",
+			regras: {obrigatorio: true},
+		}));
+	}
+	aoModificar(item) {
+		super.aoModificar(item);
+		if (this.opcoesBens) {
+			this.pai.aoModificarBem(item);
+		}
+	}
+	preencherCombos(opcoes) {
+		this.opcoesBens = opcoes;
+		for (let item of this.componentes) {
+			if (!item.modelo) {
+				item.getComponente("bem").setOpcoes(opcoes);
+			}
+		}
+	}
+	novo() {
+		let item = super.novo();
+		item.getComponente("bem").setOpcoes(this.opcoesBens);
+		return item;
+	}
+}
 class CompraBens extends FichasDOM {
 	constructor(aba, bens) {
 		let elemento = document.getElementById("compras");
 		super(elemento, "compras", {
-			qtdColunas: 4,
+			qtdColunas: 5,
 			ordem: "data",
 			ordemDesc: true,
 		});
@@ -243,41 +283,132 @@ class CompraBens extends FichasDOM {
 			subtipo: "date",
 			regras: {obrigatorio: true},
 		}));
-		this.add(new ComboFiltroDOM(null, "bem", {
-			titulo: "Bem relativo",
-			spanV: 2,
+		this.add(new ComboFiltroDOM(null, "fornecedor", {
+			titulo: "Fornecedor",
+			spanV: 3,
 			regras: {obrigatorio: true},
 		}));
-		this.add(new CampoDOM(null, "valor", {
-			titulo: "Valor (R$)", 
-			subtipo: "number",
+		this.add(new CampoArquivo(null, "notaFiscal", {
+			titulo: "Nota fiscal", 
 			regras: {obrigatorio: true},
 		}));
+		this.add(new Itens());
+	}
+	init() {
+		this.bts = document.createElement("div");
+		this.bts.hidden = true;
+		this.bts.style = "grid-column: span 5; padding-left: 20px; padding-top: 20px";
+		this.elemento.insertBefore(this.bts, this.elemento.lastElementChild);	
+		let bt = document.createElement("button");
+		bt.className = "btn btn-plus";
+		bt.textContent = "Efetuar compra";
+		this.bts.appendChild(bt);
+		bt.addEventListener("click", async (e) => {
+			let lista = this.validar();
+			if (this.vazio(true)) {
+				new Modal().mostrar("Gerar compra", "Os campos estão vazios");
+			} else {
+				if (lista.length == 0) {
+					let nome = "Compra de " + this.getComponente("data").getValor() + ".json";
+					this.getModuloSistema().salvarComJanelaNativa(compra, nome);
+				} else {
+					this.mostrarValidacao(lista, this.aba);
+				new Modal().mostrar("Gerar compra", "Há erros que devem ser corrigidos antes de gerar a compra");
+				}
+			}
+		});
 	}
 	focar() {
 		super.focar();
 		this.aba.alternar("abaCompras");
 	}
 	preencherCombos() {
-		let bens = this.bens.getValor().filter(b => !b.indRemovido && !b.indComprado);
+		let bens = this.bens.getValor();
 		let opcoes = bens.map(({ codigo, nome }) => ({
 			value: codigo,
 			text: codigo + "/" + nome,
 		}));
-		this.getComponente("bem").setOpcoes(opcoes);
+		this.getComponente("itens").preencherCombos(opcoes);
+		let fornecedores =  this.getModuloSistema().clientes?.sistemaClientes?.fornecedores;
+		if (fornecedores) {
+			let opCli = fornecedores.map(({ identificacao, nome }) => ({
+				value: identificacao.tipo + identificacao.documento,
+				text: nome,
+			}));
+			this.getComponente("cliente").setOpcoes(opCli);
+		}
 	}
-	aoModificar(item) {
-		let bem =this.getComponente("bem")
-		if (item == bem) {
-			let valor = bem.getValor();
-			if (valor) {
-				let bens = this.bens.getValor()
-				let reg = bens.find(b => b.codigo == valor);
-				if (reg && reg.valorAquisicao) {
-					this.getComponente("valor").setValor(reg.valorAquisicao);
+	aoModificarBem(item) {
+		// Verifica se foi removido ou já comprado e coloca o valor de aquisição para a compra
+		let bem = item.getComponente("bem");
+		let valor = bem.getValor();
+		if (valor) {
+			let bens = this.bens.getValor();
+			let reg = bens.find(b => b.codigo == valor);
+			if (reg) {
+				if (reg.indRemovido) {
+					bem.limpar();
+					throw new Error("Item já foi removido");
+				}
+				if (reg.indComprado) {
+					bem.limpar();
+					throw new Error("Item já foi comprado");
+				}
+				if (reg.valorAquisicao) {
+					item.getComponente("valor").setValor(reg.valorAquisicao);
 				}
 			}
+			this.bts.hidden = false;
 		}
+	}
+}
+class VendaBens extends FichasDOM {
+	constructor(aba, bens) {
+		let elemento = document.getElementById("vendas");
+		super(elemento, "vendas", {
+			qtdColunas: 5,
+			ordem: "data",
+			ordemDesc: true,
+		});
+		this.aba = aba;
+		this.bens = bens;
+		this.add(new CampoDOM(null, "data", {
+			titulo: "Data", 
+			subtipo: "date",
+			regras: {obrigatorio: true},
+		}));
+		this.add(new ComboFiltroDOM(null, "cliente", {
+			titulo: "Cliente",
+			spanV: 3,
+			regras: {obrigatorio: true},
+		}));
+		this.add(new CampoArquivo(null, "notaFiscal", {
+			titulo: "Nota fiscal", 
+		}));
+		this.add(new Itens());
+	}
+	focar() {
+		super.focar();
+		this.aba.alternar("abaVendas");
+	}
+	preencherCombos() {
+		let bens = this.bens.getValor().filter(b => !b.indRemovido && b.indComprado);
+		let opcoes = bens.map(({ codigo, nome }) => ({
+			value: codigo,
+			text: codigo + "/" + nome,
+		}));
+		this.getComponente("itens").preencherCombos(opcoes);
+		let clientes =  this.getModuloSistema().clientes?.sistemaClientes?.clientes;
+		if (clientes) {
+			let opCli = clientes.map(({ identificacao, nome }) => ({
+				value: identificacao.tipo + identificacao.documento,
+				text: nome,
+			}));
+			this.getComponente("cliente").setOpcoes(opCli);
+		}
+	}
+	aoModificarBem(item) {
+		console.log("aoModificarBem", item);
 	}
 }
 class ModuloPatrimonial extends ModuloSistemaDOM {
@@ -293,9 +424,13 @@ class ModuloPatrimonial extends ModuloSistemaDOM {
 		let bens = new Bens(this.aba, sites);
 		this.add(bens);
 		this.add(new CompraBens(this.aba, bens));
+		this.add(new VendaBens(this.aba, bens));
 		this.aba.aoAlterar = (aba) => {
 			if (aba == "abaCompras") {
 				this.getComponente("compras").preencherCombos();
+			}
+			if (aba == "abaVendas") {
+				this.getComponente("vendas").preencherCombos();
 			}
 		}
 	}
@@ -307,33 +442,45 @@ class ModuloPatrimonial extends ModuloSistemaDOM {
 		let lista = new TransformaContas().getLista(contas);
 		this.preencherCombos(lista);
 	}
-	focar() {
-		super.focar();
-		this.aba.alternar("abaParametrosFolha");
+	setClientes(clientes) {
+		this.clientes = clientes;
 	}
 	preencherCombos(listaContas) {
-		this.getComponente("bens").preencherCombos(listaContas)
+		this.getComponente("bens").preencherCombos(listaContas);
 	}
 }
 
-let patrimonial = new ModuloPatrimonial(document.getElementById("patrimonial"));
+let patrimonial = new ModuloPatrimonial();
 await patrimonial.carregarDados();
-document.body.hidden = false;
 const parametros = new URLSearchParams(window.location.search);
-if (parametros.get("contas")) {
-	let arq = "../planoContas/dados/" + parametros.get("contas") + "?v0.91";
-	fetch(arq)
+async function carregarPlanoContas(nome) {
+	let arq = "../planoContas/dados/" + nome + "?vd1";
+	await fetch(arq)
 		.then(resposta => resposta.json())
 		.then(obj => {
 			patrimonial.setContas(obj);
-			if (parametros.get("patrimonial")) {
-				let arq = "dados/" + parametros.get("patrimonial") + "?v0.91";
-				patrimonial.carregar(arq);
-			}
 		}).catch(erro => console.error('Erro ao ler o JSON:', erro)
 	);
 }
-
+async function carregarClientes(nome) {
+	let arq = "../clientes/dados/" + nome + "?vd1";
+	await fetch(arq)
+		.then(resposta => resposta.json())
+		.then(obj => {
+			patrimonial.setClientes(obj);
+		}).catch(erro => console.error('Erro ao ler o JSON:', erro)
+	);
+}
+if (parametros.get("contas")) {
+	await carregarPlanoContas(parametros.get("contas"));
+}
+if (parametros.get("patrimonial")) {
+	let arq = "dados/" + parametros.get("patrimonial") + "?v0.91";
+	patrimonial.carregar(arq);
+}
+if (parametros.get("clientes")) {
+	carregarClientes(parametros.get("clientes"));
+}
 async function executaAcao(linkDestino) {
 	let versao = "?v0.91";
 	if (linkDestino === "#abrir") {
@@ -343,7 +490,14 @@ async function executaAcao(linkDestino) {
 	} else if (linkDestino === "#novo") {
 		patrimonial.novo();
 	} else if (linkDestino === "#validar") {
-		patrimonial.validar(patrimonial.aba);
+		let lista = patrimonial.validar();
+		patrimonial.mostrarValidacao(lista, patrimonial.aba);
+	} else if (linkDestino === "#planoContas") {
+		let obj = await patrimonial.abrirComJanelaNativa();
+		patrimonial.setContas(obj);
+	} else if (linkDestino === "#clientes") {
+		let obj = await patrimonial.abrirComJanelaNativa();
+		patrimonial.setClientes(obj);
 	} else if (linkDestino === "#ajuda") {
 		//patrimonial.mostrarAjuda("ajuda.html", "Contabilidade Simples em Javascript", versao);
 	} else if (linkDestino === "#sobre") {
@@ -363,3 +517,4 @@ const meuMenu = new NavigationMenu(
   '.dropdown-item', 
   acaoAoClicar
 );
+document.body.hidden = false;
