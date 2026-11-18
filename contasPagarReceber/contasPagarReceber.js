@@ -100,7 +100,14 @@ class ContasPagarReceberBasico extends FichasDOM {
 		bt.className = "btn btn-plus";
 		bt.textContent = "Calcular projeção";
 		this.bts.appendChild(bt);
+		let tb = document.createElement("table");
+		tb.id = "projetivo_gerado";
+		this.elemento.appendChild(tb);
 		bt.addEventListener("click", async (e) => {
+			const formatadorBRL = new Intl.NumberFormat('pt-BR', {
+			  style: 'currency',
+			  currency: 'BRL'
+			});
 			let lista = this.validar(true);
 			if (this.vazio(true)) {
 				new Modal().mostrar("Gerar projetivo", "Os campos estão vazios");
@@ -108,10 +115,18 @@ class ContasPagarReceberBasico extends FichasDOM {
 				if (lista.length == 0) {
 					let atual = this.getAtual();
 					let projetivo = this.calcularProjetivo(atual);
-					console.log("atual", atual);
-					console.log("projetivo", projetivo);
-					let resumo = this.gerarResumoContrato(atual, projetivo);
-					console.log("resumo", resumo);
+					//console.log("atual", atual);
+					//console.log("projetivo", projetivo);
+					let tb = document.getElementById("projetivo_gerado");
+					tb.innerHTML = "";
+					let r = tb.insertRow();
+					r.insertCell().innerText = "Data";
+					r.insertCell().innerText = "Valor";
+					for (let p of projetivo) {
+						r = tb.insertRow();
+						r.insertCell().innerText = p.vencimento.toISOString().split('T')[0];
+						r.insertCell().innerText = formatadorBRL.format(p.valorParcela);
+					}
 				} else {
 					this.mostrarValidacao(lista, this.aba);
 					new Modal().mostrar("Gerar projetivo", "Há erros que devem ser corrigidos antes de gerar o projetivo");
@@ -119,30 +134,6 @@ class ContasPagarReceberBasico extends FichasDOM {
 			}
 		});
 	}
-	/*calcularProjetivo(reg) {
-		let data = new Date(reg.data);
-		let valor = Number(reg.valor);
-		let taxa = Number(reg.taxa) / 100.00;
-		let qtd = Number(reg.parcelas);
-		let periodicidade = Number(reg.periodicidade);
-		let dataPrimeiroPagamento = null;
-		let tipo = reg.tipo; //sac ou price
-		if (reg.dataPrimeiroPagamento) {
-			dataPrimeiroPagamento = new Date(reg.dataPrimeiroPagamento);
-		}
-		if (dataPrimeiroPagamento) {
-			let dias = Math.floor((dataPrimeiroPagamento - data) / (1000 * 60 * 60 * 24));
-			console.log("dias", dias);
-			if (dias > 0) {
-				qtd--;
-			}
-			// continuar
-		} else {
-			// continuar
-		}
-	}*/
-
-/////////////////////////////
 	calcularProjetivo(reg, dataCorte = new Date()) {
 		const dataAtual = this.normalizarData(dataCorte);
 		const dataBase = this.normalizarData(reg.data);
@@ -638,8 +629,6 @@ class ContasPagarReceberBasico extends FichasDOM {
 			cronogramaProjetivo: projetivo
 		};
 	}
-
-/////////////////////////////
 }
 class ContasPagar extends ContasPagarReceberBasico {
 	constructor(aba) {
@@ -824,26 +813,31 @@ class FechamentoContabil extends ObjetoDOM {
 		bt.textContent = "Gerar lançamentos";
 		this.bts.appendChild(bt);
 		bt.addEventListener("click", async (e) => {
-			let lista = this.validar(true);
-			if (this.vazio(true)) {
-				new Modal().mostrar("Fechamento Contábil", "Os campos estão vazios");
-			} else {
-				if (lista.length == 0) {
-					let tiposContasPagar = this.pai.getComponente("tiposContasPagar").getValor();
-					let contasPagar = this.pai.getComponente("contasPagar");
-					let data =  this.getComponente("data").getValor();
-					for (let cp of contasPagar.getValor()) {
-						let tipoContabil = tiposContasPagar.find(t => t.id == cp.tipoContabil);
-						let resumo = contasPagar.gerarResumoContrato(cp, null, data);
-						if (!tipoContabil.resumos) {
-							tipoContabil.resumos = [];
-						}
-						tipoContabil.resumos.push(resumo);
-					}
-					console.log("tiposContasPagar", tiposContasPagar);
+			let sistema = this.getModuloSistema();
+			let lista = sistema.validar();
+			sistema.mostrarValidacao(lista, sistema.aba);
+			if (lista.length == 0) {
+				lista = this.validar(true);
+				if (this.vazio(true)) {
+					new Modal().mostrar("Fechamento Contábil", "Os campos estão vazios");
 				} else {
-					this.mostrarValidacao(lista, this.pai.aba);
-					new Modal().mostrar("Fechamento Contábil", "Há erros que devem ser corrigidos antes de gerar o projetivo");
+					if (lista.length == 0) {
+						let tiposContasPagar = this.pai.getComponente("tiposContasPagar").getValor();
+						let contasPagar = this.pai.getComponente("contasPagar");
+						let data =  this.getComponente("data").getValor();
+						for (let cp of contasPagar.getValor()) {
+							let tipoContabil = tiposContasPagar.find(t => t.id == cp.tipoContabil);
+							let resumo = contasPagar.gerarResumoContrato(cp, null, data);
+							if (!tipoContabil.resumos) {
+								tipoContabil.resumos = [];
+							}
+							tipoContabil.resumos.push(resumo);
+						}
+						console.log("tiposContasPagar", tiposContasPagar);
+					} else {
+						this.mostrarValidacao(lista, this.pai.aba);
+						new Modal().mostrar("Fechamento Contábil", "Há erros que devem ser corrigidos antes de gerar o projetivo");
+					}
 				}
 			}
 		});
